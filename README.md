@@ -19,16 +19,10 @@ Note that this plugin is still in development. Feel free to contribute to the pr
 
 ## Installation
 
-Add this to your package's `pubspec.yaml` file:
-
-```yaml
-dependencies:
-  flutter_alarmkit: ^0.0.1  # Use the latest version
-```
-
-Then run:
+Run:
 
 ```bash
+flutter pub add flutter_alarmkit
 flutter pub get
 ```
 
@@ -61,8 +55,7 @@ To schedule a one-time alarm:
 try {
   final alarmId = await FlutterAlarmkit.scheduleOneShotAlarm(
     dateTime: DateTime.now().add(Duration(hours: 1)),
-    title: 'My Alarm',
-    body: 'Time to wake up!',
+    label: 'My Alarm',
   );
   print('Alarm scheduled with ID: $alarmId');
 } catch (e) {
@@ -99,11 +92,12 @@ Schedules a one-time alarm for a specific date and time.
 
 Parameters:
 - `dateTime` (DateTime): When the alarm should trigger
-- `title` (String): The alarm's title
-- `body` (String): The alarm's message
+- `label` (String): The alarm's title
 
 Returns:
 - `Future<String>`: The unique identifier for the scheduled alarm
+
+Example:
 
 ## Contributing
 

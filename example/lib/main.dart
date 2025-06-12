@@ -144,7 +144,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(title: const Text('AlarmKit Example')),
+        appBar: AppBar(title: const Text('AlarmKit Example 0.0.2')),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
