@@ -42,8 +42,12 @@ Before scheduling any alarms, you need to request authorization from the user:
 import 'package:flutter_alarmkit/flutter_alarmkit.dart';
 
 try {
-  final state = await FlutterAlarmkit.requestAuthorization();
-  print('Authorization state: $state');
+  final isAuthorized = await FlutterAlarmkit.requestAuthorization();
+  if (isAuthorized) {
+    print('Alarm authorization granted');
+  } else {
+    print('Alarm authorization denied or not determined');
+  }
 } catch (e) {
   print('Error requesting authorization: $e');
 }
@@ -70,15 +74,24 @@ try {
 
 ### `requestAuthorization()`
 
-Requests permission to schedule alarms. Returns the current authorization state.
+Requests permission to schedule alarms. Returns whether the authorization was granted.
 
 Returns:
-- `Future<AlarmAuthorizationState>`: The current authorization state
+- `Future<bool>`: `true` if authorization was granted, `false` if denied or not determined
 
-Possible states:
-- `authorized`: User has granted permission
-- `denied`: User has denied permission
-- `notDetermined`: User hasn't made a choice yet
+Example:
+```dart
+try {
+  final isAuthorized = await FlutterAlarmkit.requestAuthorization();
+  if (isAuthorized) {
+    print('Alarm authorization granted');
+  } else {
+    print('Alarm authorization denied or not determined');
+  }
+} catch (e) {
+  print('Error requesting authorization: $e');
+}
+```
 
 ### `scheduleOneShotAlarm()`
 

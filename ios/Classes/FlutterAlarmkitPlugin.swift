@@ -33,8 +33,15 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
 
   private func requestAuthorization(result: @escaping FlutterResult) async {
     do {
-      _ = try await AlarmManager.shared.requestAuthorization()
-      result(true)
+      let authorizationState = try await AlarmManager.shared.requestAuthorization()
+      switch authorizationState {
+      case .authorized:
+        result(true)
+      case .denied, .notDetermined:
+        result(false)
+      @unknown default:
+        result(false)
+      }
     } catch {
       result(FlutterError(code: "AUTH_ERROR",
                          message: "Failed to request alarm authorization: \(error)",
