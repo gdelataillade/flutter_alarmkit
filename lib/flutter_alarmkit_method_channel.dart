@@ -35,4 +35,59 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
       rethrow;
     }
   }
+
+  @override
+  Future<int> getAuthorizationState() async {
+    try {
+      final int state =
+          await methodChannel.invokeMethod<int>('getAuthorizationState') ?? 0;
+      return state;
+    } on PlatformException catch (e) {
+      if (e.code == 'UNSUPPORTED_VERSION') {
+        throw PlatformException(
+          code: 'UNSUPPORTED_VERSION',
+          message: 'AlarmKit is only available on iOS 26.0 and above',
+          details: null,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  @override
+  Future<String> scheduleOneShotAlarm({
+    required double timestamp,
+    String? label,
+  }) async {
+    try {
+      final Map<String, dynamic> args = {
+        'timestamp': timestamp,
+        if (label != null) 'label': label,
+      };
+
+      final String? alarmId = await methodChannel.invokeMethod<String>(
+        'scheduleOneShotAlarm',
+        args,
+      );
+
+      if (alarmId == null) {
+        throw PlatformException(
+          code: 'UNKNOWN_ERROR',
+          message: 'Failed to schedule alarm: null result',
+          details: null,
+        );
+      }
+
+      return alarmId;
+    } on PlatformException catch (e) {
+      if (e.code == 'UNSUPPORTED_VERSION') {
+        throw PlatformException(
+          code: 'UNSUPPORTED_VERSION',
+          message: 'AlarmKit is only available on iOS 26.0 and above',
+          details: null,
+        );
+      }
+      rethrow;
+    }
+  }
 }

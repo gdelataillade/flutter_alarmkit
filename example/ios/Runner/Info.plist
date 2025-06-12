@@ -47,5 +47,11 @@
 	<true/>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>This app uses AlarmKit to schedule alarms.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_alarmkit._tcp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>This app needs access to the local network to discover and connect to alarm devices.</string>
 </dict>
 </plist>
