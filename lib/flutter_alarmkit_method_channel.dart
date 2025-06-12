@@ -11,7 +11,28 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
 
   @override
   Future<String?> getPlatformVersion() async {
-    final version = await methodChannel.invokeMethod<String>('getPlatformVersion');
+    final version = await methodChannel.invokeMethod<String>(
+      'getPlatformVersion',
+    );
     return version;
+  }
+
+  @override
+  Future<bool> requestAuthorization() async {
+    try {
+      final bool granted =
+          await methodChannel.invokeMethod<bool>('requestAuthorization') ??
+          false;
+      return granted;
+    } on PlatformException catch (e) {
+      if (e.code == 'UNSUPPORTED_VERSION') {
+        throw PlatformException(
+          code: 'UNSUPPORTED_VERSION',
+          message: 'AlarmKit is only available on iOS 26.0 and above',
+          details: null,
+        );
+      }
+      rethrow;
+    }
   }
 }

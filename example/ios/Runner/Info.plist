@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSAlarmKitUsageDescription</key>
+	<string>This app uses AlarmKit to schedule alarms.</string>
 </dict>
 </plist>

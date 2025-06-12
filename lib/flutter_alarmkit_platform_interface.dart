@@ -26,4 +26,16 @@ abstract class FlutterAlarmkitPlatform extends PlatformInterface {
   Future<String?> getPlatformVersion() {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
+
+  /// Requests authorization to schedule alarms using AlarmKit.
+  ///
+  /// Returns a [Future<bool>] that completes with `true` if authorization was granted,
+  /// `false` otherwise.
+  ///
+  /// Throws a [PlatformException] if the platform version is not supported (iOS < 26.0).
+  Future<bool> requestAuthorization() {
+    throw UnimplementedError(
+      'requestAuthorization() has not been implemented.',
+    );
+  }
 }
