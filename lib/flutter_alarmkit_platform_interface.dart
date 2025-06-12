@@ -75,4 +75,14 @@ abstract class FlutterAlarmkitPlatform extends PlatformInterface {
       'scheduleOneShotAlarm() has not been implemented.',
     );
   }
+
+  /// Stops an alarm with the given ID.
+  ///
+  /// [alarmId] is the UUID of the alarm to stop.
+  ///
+  /// Returns a [Future<bool>] that completes with `true` if the alarm was stopped,
+  /// `false` otherwise.
+  Future<bool> stopAlarm({required String alarmId}) {
+    throw UnimplementedError('stopAlarm() has not been implemented.');
+  }
 }

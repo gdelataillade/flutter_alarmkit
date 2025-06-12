@@ -92,4 +92,13 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
       rethrow;
     }
   }
+
+  @override
+  Future<bool> stopAlarm({required String alarmId}) async {
+    final bool? stopped = await methodChannel.invokeMethod<bool>(
+      'stopAlarm',
+      alarmId,
+    );
+    return stopped ?? false;
+  }
 }

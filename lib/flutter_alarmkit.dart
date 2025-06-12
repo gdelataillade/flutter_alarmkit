@@ -51,4 +51,14 @@ class FlutterAlarmkit {
       tintColor: tintColor,
     );
   }
+
+  /// Stops an alarm with the given ID.
+  ///
+  /// [alarmId] is the UUID of the alarm to stop.
+  ///
+  /// Returns a [Future<bool>] that completes with `true` if the alarm was stopped,
+  /// `false` otherwise.
+  Future<bool> stopAlarm({required String alarmId}) {
+    return FlutterAlarmkitPlatform.instance.stopAlarm(alarmId: alarmId);
+  }
 }

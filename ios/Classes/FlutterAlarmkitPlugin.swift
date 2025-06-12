@@ -25,6 +25,8 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     case "scheduleOneShotAlarm":
       Task { await self.scheduleOneShotAlarm(call: call, result: result) }
 
+    case "stopAlarm":
+      Task { await self.stopAlarm(call: call, result: result) }
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -54,14 +56,14 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
 
   private func requestAuthorization(result: @escaping FlutterResult) async {
     do {
-      let authorizationState = try await AlarmManager.shared.requestAuthorization()
-      switch authorizationState {
-      case .authorized:
-        result(true)
-      case .denied, .notDetermined:
-        result(false)
-      @unknown default:
-        result(false)
+      let status = try await AlarmManager.shared.requestAuthorization()
+      switch status {
+        case .authorized:
+          result(true)
+        case .denied, .notDetermined:
+          result(false)
+        @unknown default:
+          result(false)
       }
     } catch {
       result(FlutterError(
@@ -140,7 +142,7 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     // 3. Build the presentation
     let alert = AlarmPresentation.Alert(
       title: LocalizedStringResource(stringLiteral: label),
-      stopButton: .stopButton
+      stopButton: AlarmButton(text: "Stop", textColor: .white, systemImageName: "stop.circle")
     )
     let presentation = AlarmPresentation(alert: alert)
 
@@ -182,26 +184,31 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
       ))
     }
   }
-}
 
-// MARK: - Custom AlarmButton Styles
+  private func stopAlarm(
+    call: FlutterMethodCall,
+    result: @escaping FlutterResult
+  ) async {
+    let manager = AlarmManager.shared
+    guard let alarmId = call.arguments as? String else {
+      result(FlutterError(
+        code: "BAD_ARGS",
+        message: "Invalid arguments for stopAlarm",
+        details: nil
+      ))
+      return
+    }
 
-@available(iOS 26.0, *)
-extension AlarmButton {
-  static var openAppButton: Self {
-    AlarmButton(text: "Open", textColor: .black, systemImageName: "swift")
-  }
-  static var pauseButton: Self {
-    AlarmButton(text: "Pause", textColor: .black, systemImageName: "pause.fill")
-  }
-  static var resumeButton: Self {
-    AlarmButton(text: "Start", textColor: .black, systemImageName: "play.fill")
-  }
-  static var repeatButton: Self {
-    AlarmButton(text: "Repeat", textColor: .black, systemImageName: "repeat.circle")
-  }
-  static var stopButton: Self {
-    AlarmButton(text: "Done", textColor: .white, systemImageName: "stop.circle")
+    do {
+      try manager.stop(id: UUID(uuidString: alarmId)!)
+      result(true)
+    } catch {
+      result(FlutterError(
+        code: "STOP_ERROR",
+        message: "Failed to stop alarm \(alarmId): \(error.localizedDescription)",
+        details: nil
+      ))
+    }
   }
 }
 
