@@ -43,10 +43,12 @@ class FlutterAlarmkit {
   Future<String> scheduleOneShotAlarm({
     required double timestamp,
     String? label,
+    String? tintColor,
   }) {
     return FlutterAlarmkitPlatform.instance.scheduleOneShotAlarm(
       timestamp: timestamp,
       label: label,
+      tintColor: tintColor,
     );
   }
 }

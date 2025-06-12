@@ -111,6 +111,7 @@ class _MyAppState extends State<MyApp> {
       final alarmId = await _flutterAlarmkitPlugin.scheduleOneShotAlarm(
         timestamp: timestamp,
         label: 'Test Alarm',
+        tintColor: '#00FF00', // green
       );
 
       if (!mounted) return;

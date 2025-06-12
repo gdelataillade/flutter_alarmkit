@@ -58,11 +58,13 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
   Future<String> scheduleOneShotAlarm({
     required double timestamp,
     String? label,
+    String? tintColor,
   }) async {
     try {
       final Map<String, dynamic> args = {
         'timestamp': timestamp,
         if (label != null) 'label': label,
+        if (tintColor != null) 'tintColor': tintColor,
       };
 
       final String? alarmId = await methodChannel.invokeMethod<String>(

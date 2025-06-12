@@ -69,6 +69,7 @@ abstract class FlutterAlarmkitPlatform extends PlatformInterface {
   Future<String> scheduleOneShotAlarm({
     required double timestamp,
     String? label,
+    String? tintColor,
   }) {
     throw UnimplementedError(
       'scheduleOneShotAlarm() has not been implemented.',
