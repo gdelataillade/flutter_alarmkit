@@ -75,6 +75,75 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     }
   }
 
+  // MARK: - Private Helpers
+
+  private func ensureAuthorized(result: @escaping FlutterResult) async -> Bool {
+    let manager = AlarmManager.shared
+    switch manager.authorizationState {
+    case .notDetermined:
+      do {
+        let state = try await manager.requestAuthorization()
+        guard state == .authorized else {
+          result(FlutterError(
+            code: "NOT_AUTHORIZED",
+            message: "AlarmKit authorization denied by user",
+            details: nil
+          ))
+          return false
+        }
+      } catch {
+        result(FlutterError(
+          code: "AUTH_ERROR",
+          message: "Failed to request alarm authorization: \(error)",
+          details: nil
+        ))
+        return false
+      }
+    case .denied:
+      result(FlutterError(
+        code: "NOT_AUTHORIZED",
+        message: "AlarmKit authorization denied or restricted. Please enable in Settings.",
+        details: nil
+      ))
+      return false
+    case .authorized:
+      return true
+    @unknown default:
+      result(FlutterError(
+        code: "UNKNOWN_AUTH_STATE",
+        message: "Unknown authorization state: \(manager.authorizationState)",
+        details: nil
+      ))
+      return false
+    }
+    return true
+  }
+
+  private func parseArgs(_ call: FlutterMethodCall, result: @escaping FlutterResult) -> [String: Any]? {
+    guard let args = call.arguments as? [String: Any] else {
+      result(FlutterError(
+        code: "BAD_ARGS",
+        message: "Invalid arguments",
+        details: nil
+      ))
+      return nil
+    }
+    return args
+  }
+
+  private func parseLabel(from args: [String: Any]) -> String {
+    return args["label"] as? String ?? "Alarm"
+  }
+
+  private func parseTintColor(from args: [String: Any]) -> Color {
+    let defaultTint = UIColor.blue
+    if let hex = args["tintColor"] as? String,
+       let uiColor = color(from: hex) {
+      return Color(uiColor: uiColor)
+    }
+    return Color(uiColor: defaultTint)
+  }
+
   // MARK: - Scheduling
 
   private func scheduleOneShotAlarm(
@@ -83,88 +152,25 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
   ) async {
     let manager = AlarmManager.shared
 
-    // 1. Handle authorization state
-    switch manager.authorizationState {
-      case .notDetermined:
-        do {
-          let state = try await manager.requestAuthorization()
-          guard state == .authorized else {
-            result(FlutterError(
-              code: "NOT_AUTHORIZED",
-              message: "AlarmKit authorization denied by user",
-              details: nil
-            ))
-            return
-          }
-        } catch {
-          result(FlutterError(
-            code: "AUTH_ERROR",
-            message: "Failed to request alarm authorization: \(error)",
-            details: nil
-          ))
-          return
-        }
-
-      case .denied:
-        result(FlutterError(
-          code: "NOT_AUTHORIZED",
-          message: "AlarmKit authorization denied or restricted. Please enable in Settings.",
-          details: nil
-        ))
-        return
-
-      case .authorized:
-        break
-      @unknown default:
-        result(FlutterError(
-          code: "UNKNOWN_AUTH_STATE",
-          message: "Unknown authorization state: \(manager.authorizationState)",
-          details: nil
-        ))
-        return
-    }
+    // 1. Ensure authorization
+    guard await ensureAuthorized(result: result) else { return }
 
     // 2. Parse arguments
-    guard
-      let args = call.arguments as? [String: Any],
-      let timestampMs = args["timestamp"] as? Double
-    else {
-      result(FlutterError(
-        code: "BAD_ARGS",
-        message: "Invalid arguments for scheduleOneShotAlarm",
-        details: nil
-      ))
-      return
-    }
+    guard let args = parseArgs(call, result: result),
+          let timestampMs = args["timestamp"] as? Double else { return }
 
-    let label = args["label"] as? String ?? "Alarm"
+    let label = parseLabel(from: args)
     let date = Date(timeIntervalSince1970: timestampMs / 1000)
 
-    // 3. Build the presentation
-    let stopButton = AlarmButton(text: "Stop", textColor: .white, systemImageName: "stop.circle")
-
-    let alertPresentation = AlarmPresentation.Alert(
+    let presentation = AlarmPresentation(alert: AlarmPresentation.Alert(
       title: LocalizedStringResource(stringLiteral: label),
-      stopButton: stopButton
-    )
-
-    // 4. Determine tintColor (hex string like "#RRGGBB")
-    let defaultTint = UIColor.blue
-    let tint: UIColor
-    if let hex = args["tintColor"] as? String,
-       let parsed = color(from: hex) {
-      tint = parsed
-    } else {
-      tint = defaultTint
-    }
-
-    // 5. Wrap in attributes
+      stopButton: AlarmButton(text: "Stop", textColor: .white, systemImageName: "stop.circle")
+    ))
+    let tintColor = parseTintColor(from: args)
     let attributes = AlarmAttributes<NeverMetadata>(
-      presentation: AlarmPresentation(alert: alertPresentation),
-      tintColor: Color(uiColor: tint)
+      presentation: presentation,
+      tintColor: tintColor
     )
-
-    // 6. Create one-shot fixed schedule
     let alarmConfiguration = AlarmManager
       .AlarmConfiguration<NeverMetadata>(
         schedule: .fixed(date),
@@ -193,114 +199,47 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
   ) async {
     let manager = AlarmManager.shared
 
-    // 1. Handle authorization state
-    switch manager.authorizationState {
-      case .notDetermined:
-        do {
-          let state = try await manager.requestAuthorization()
-          guard state == .authorized else {
-            result(FlutterError(
-              code: "NOT_AUTHORIZED",
-              message: "AlarmKit authorization denied by user",
-              details: nil
-            ))
-            return
-          }
-        } catch {
-          result(FlutterError(
-            code: "AUTH_ERROR",
-            message: "Failed to request alarm authorization: \(error)",
-            details: nil
-          ))
-          return
-        }
-
-      case .denied:
-        result(FlutterError(
-          code: "NOT_AUTHORIZED",
-          message: "AlarmKit authorization denied or restricted. Please enable in Settings.",
-          details: nil
-        ))
-        return
-
-      case .authorized:
-        break
-      @unknown default:
-        result(FlutterError(
-          code: "UNKNOWN_AUTH_STATE",
-          message: "Unknown authorization state: \(manager.authorizationState)",
-          details: nil
-        ))
-        return
-    }
+    // 1. Ensure authorization
+    guard await ensureAuthorized(result: result) else { return }
 
     // 2. Parse arguments
-    guard
-      let args = call.arguments as? [String: Any],
-      let countdownDurationInSeconds = args["countdownDurationInSeconds"] as? Int,
-      let repeatDurationInSeconds = args["repeatDurationInSeconds"] as? Int,
-      countdownDurationInSeconds != nil,
-      repeatDurationInSeconds != nil
-    else {
-      result(FlutterError(
-        code: "BAD_ARGS",
-        message: "Invalid arguments for setCountdownAlarm",
-        details: nil
-      ))
-      return
-    }
+    guard let args = parseArgs(call, result: result),
+          let preSec = args["countdownDurationInSeconds"] as? Int,
+          let postSec = args["repeatDurationInSeconds"] as? Int else { return }
 
-    let label = args["label"] as? String ?? "Alarm"
-    let countdownDuration = Alarm.CountdownDuration(preAlert: TimeInterval(countdownDurationInSeconds), postAlert: TimeInterval(repeatDurationInSeconds))
+    let label = parseLabel(from: args)
+    let countdownDuration = Alarm.CountdownDuration(preAlert: TimeInterval(preSec), postAlert: TimeInterval(postSec))
 
-    // 3. Build the presentation
     let stopButton = AlarmButton(text: "Done", textColor: .white, systemImageName: "stop.circle")
     let repeatButton = AlarmButton(text: "Repeat", textColor: .white, systemImageName: "repeat.circle")
     let pauseButton = AlarmButton(text: "Pause", textColor: .green, systemImageName: "pause.circle")
     let resumeButton = AlarmButton(text: "Resume", textColor: .green, systemImageName: "play.circle")
 
-    let countdownPresentation = AlarmPresentation.Countdown(
-      title: LocalizedStringResource(stringLiteral: label),
-      pauseButton: pauseButton,
-    )
-
-    let pausedPresentation = AlarmPresentation.Paused(
-      title: LocalizedStringResource(stringLiteral: label),
-      resumeButton: resumeButton
-    )
-
-    let alertPresentation = AlarmPresentation.Alert(
-      title: LocalizedStringResource(stringLiteral: label),
-      stopButton: stopButton,
-      secondaryButton: repeatButton,
-      secondaryButtonBehavior: .countdown
-    )
-
-    // 4. Determine tintColor (hex string like "#RRGGBB")
-    let defaultTint = UIColor.blue
-    let tint: UIColor
-    if let hex = args["tintColor"] as? String,
-       let parsed = color(from: hex) {
-      tint = parsed
-    } else {
-      tint = defaultTint
-    }
-
-    // 5. Wrap in attributes
-    let attributes = AlarmAttributes<NeverMetadata>(
-      presentation: AlarmPresentation(
-        alert: alertPresentation,
-        countdown: countdownPresentation,
-        paused: pausedPresentation
+    let presentation = AlarmPresentation(
+      alert: AlarmPresentation.Alert(
+        title: LocalizedStringResource(stringLiteral: label),
+        stopButton: stopButton,
+        secondaryButton: repeatButton,
+        secondaryButtonBehavior: .countdown
       ),
-      tintColor: Color(uiColor: tint)
+      countdown: AlarmPresentation.Countdown(
+        title: LocalizedStringResource(stringLiteral: label),
+        pauseButton: pauseButton
+      ),
+      paused: AlarmPresentation.Paused(
+        title: LocalizedStringResource(stringLiteral: label),
+        resumeButton: resumeButton
+      )
     )
-
-    // 6. Create alarm
+    let tintColor = parseTintColor(from: args)
+    let attributes = AlarmAttributes<NeverMetadata>(
+      presentation: presentation,
+      tintColor: tintColor
+    )
     let alarmConfiguration = AlarmManager
       .AlarmConfiguration<NeverMetadata>(
         countdownDuration: countdownDuration,
-        attributes: attributes,
+        attributes: attributes
       )
 
     // 7. Schedule and return the UUID string
