@@ -1,3 +1,7 @@
+## 0.0.5
+* Add `scheduleRecurrentAlarm` method.
+* Add `cancelAlarm` method.
+
 ## 0.0.4
 * Update README.md.
 
