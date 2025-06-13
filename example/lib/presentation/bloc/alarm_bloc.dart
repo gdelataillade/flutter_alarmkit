@@ -51,6 +51,12 @@ class ScheduleCountdownAlarm extends AlarmEvent {
       ];
 }
 
+class CancelAlarm extends AlarmEvent {
+  final String alarmId;
+
+  const CancelAlarm({required this.alarmId});
+}
+
 class StopAlarm extends AlarmEvent {
   final String alarmId;
 
@@ -103,6 +109,7 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
     on<RequestAuthorization>(_onRequestAuthorization);
     on<ScheduleOneShotAlarm>(_onScheduleOneShotAlarm);
     on<ScheduleCountdownAlarm>(_onScheduleCountdownAlarm);
+    on<CancelAlarm>(_onCancelAlarm);
     on<StopAlarm>(_onStopAlarm);
   }
 
@@ -223,6 +230,14 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
     } catch (e) {
       emit(state.copyWith(scheduleStatus: 'Error: $e'));
     }
+  }
+
+  Future<void> _onCancelAlarm(
+    CancelAlarm event,
+    Emitter<AlarmState> emit,
+  ) async {
+    final canceled = await _repository.cancelAlarm(alarmId: event.alarmId);
+    emit(state.copyWith(scheduleStatus: canceled ? 'Alarm canceled' : 'Error'));
   }
 
   Future<void> _onStopAlarm(

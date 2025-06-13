@@ -1,4 +1,7 @@
 import 'flutter_alarmkit_platform_interface.dart';
+import 'src/weekday.dart' show Weekday;
+
+export 'src/weekday.dart' show Weekday;
 
 class FlutterAlarmkit {
   Future<String?> getPlatformVersion() {
@@ -80,6 +83,47 @@ class FlutterAlarmkit {
       label: label,
       tintColor: tintColor,
     );
+  }
+
+  /// Schedules a recurrent alarm for the specified weekdays and time.
+  ///
+  /// [weekdays] is a set of weekdays when the alarm should trigger.
+  /// [hour] is the hour of the day (0-23)
+  /// [minute] is the minute of the hour (0-59)
+  /// [label] is an optional string that will be displayed as the alarm title.
+  /// [tintColor] is an optional string representing a color that helps users associate the alarm with your app.
+  ///
+  /// Returns a [Future<String>] that completes with the UUID of the scheduled alarm.
+  ///
+  /// Throws a [PlatformException] if:
+  /// - The platform version is not supported (iOS < 26.0)
+  /// - The time parameters are invalid
+  /// - The alarm scheduling fails
+  /// - The app is not authorized to schedule alarms
+  Future<String> scheduleRecurrentAlarm({
+    required Set<Weekday> weekdays,
+    required int hour,
+    required int minute,
+    String? label,
+    String? tintColor,
+  }) {
+    return FlutterAlarmkitPlatform.instance.scheduleRecurrentAlarm(
+      weekdayMask: Weekday.toBitmask(weekdays),
+      hour: hour,
+      minute: minute,
+      label: label,
+      tintColor: tintColor,
+    );
+  }
+
+  /// Cancels an alarm with the given ID.
+  ///
+  /// [alarmId] is the UUID of the alarm to cancel.
+  ///
+  /// Returns a [Future<bool>] that completes with `true` if the alarm was canceled,
+  /// `false` otherwise.
+  Future<bool> cancelAlarm({required String alarmId}) {
+    return FlutterAlarmkitPlatform.instance.cancelAlarm(alarmId: alarmId);
   }
 
   /// Stops an alarm with the given ID.

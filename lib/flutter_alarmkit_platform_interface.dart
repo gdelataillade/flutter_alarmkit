@@ -91,6 +91,43 @@ abstract class FlutterAlarmkitPlatform extends PlatformInterface {
     throw UnimplementedError('setCountdownAlarm() has not been implemented.');
   }
 
+  /// Schedules a recurrent alarm for the specified weekdays and time.
+  ///
+  /// [weekdayMask] is a bitmask representing the days of the week (0 = Monday, 1 = Tuesday, etc.)
+  /// [hour] is the hour of the day (0-23)
+  /// [minute] is the minute of the hour (0-59)
+  /// [label] is an optional string that will be displayed as the alarm title.
+  /// [tintColor] is an optional string representing a color that helps users associate the alarm with your app.
+  ///
+  /// Returns a [Future<String>] that completes with the UUID of the scheduled alarm.
+  ///
+  /// Throws a [PlatformException] if:
+  /// - The platform version is not supported (iOS < 26.0)
+  /// - The time parameters are invalid
+  /// - The alarm scheduling fails
+  /// - The app is not authorized to schedule alarms
+  Future<String> scheduleRecurrentAlarm({
+    required int weekdayMask,
+    required int hour,
+    required int minute,
+    String? label,
+    String? tintColor,
+  }) {
+    throw UnimplementedError(
+      'scheduleRecurrentAlarm() has not been implemented.',
+    );
+  }
+
+  /// Cancels an alarm with the given ID.
+  ///
+  /// [alarmId] is the UUID of the alarm to cancel.
+  ///
+  /// Returns a [Future<bool>] that completes with `true` if the alarm was canceled,
+  /// `false` otherwise.
+  Future<bool> cancelAlarm({required String alarmId}) {
+    throw UnimplementedError('cancelAlarm() has not been implemented.');
+  }
+
   /// Stops an alarm with the given ID.
   ///
   /// [alarmId] is the UUID of the alarm to stop.

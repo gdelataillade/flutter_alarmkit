@@ -28,6 +28,12 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     case "setCountdownAlarm":
       Task { await self.setCountdownAlarm(call: call, result: result) }
 
+    case "scheduleRecurrentAlarm":
+      Task { await self.scheduleRecurrentAlarm(call: call, result: result) }
+
+    case "cancelAlarm":
+      Task { await self.cancelAlarm(call: call, result: result) }
+
     case "stopAlarm":
       Task { await self.stopAlarm(call: call, result: result) }
     default:
@@ -256,6 +262,97 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
         details: nil
       ))
     } 
+  }
+
+  // MARK: - Recurrent Alarms
+
+  private func scheduleRecurrentAlarm(
+    call: FlutterMethodCall,
+    result: @escaping FlutterResult
+  ) async {
+    let manager = AlarmManager.shared
+
+    // 1. Make sure we're allowed to schedule
+    guard await ensureAuthorized(result: result) else { return }
+
+    // 2. Parse args
+    guard let args = parseArgs(call, result: result),
+          let mask = args["weekdayMask"] as? Int,
+          let hour = args["hour"] as? Int,
+          let minute = args["minute"] as? Int
+    else { return }
+
+    // 3. Decode bitmask into weekdays
+    var weekdays: [Locale.Weekday] = []
+    if mask & (1 << 0) != 0 { weekdays.append(.monday) }
+    if mask & (1 << 1) != 0 { weekdays.append(.tuesday) }
+    if mask & (1 << 2) != 0 { weekdays.append(.wednesday) }
+    if mask & (1 << 3) != 0 { weekdays.append(.thursday) }
+    if mask & (1 << 4) != 0 { weekdays.append(.friday) }
+    if mask & (1 << 5) != 0 { weekdays.append(.saturday) }
+    if mask & (1 << 6) != 0 { weekdays.append(.sunday) }
+
+    // 4. Build the weekly schedule
+    let time = Alarm.Schedule.Relative.Time(hour: hour, minute: minute)
+    let recurrence = Alarm.Schedule.Relative.Recurrence.weekly(weekdays)
+    let schedule = Alarm.Schedule.Relative(time: time, repeats: recurrence)
+
+    // 5. Build presentation UI
+    let label = parseLabel(from: args)
+    let presentation = AlarmPresentation(
+      alert: AlarmPresentation.Alert(
+        title: LocalizedStringResource(stringLiteral: label),
+        stopButton: AlarmButton(
+          text: "Stop",
+          textColor: .white,
+          systemImageName: "stop.circle"
+        )
+      )
+    )
+    let tintColor = parseTintColor(from: args)
+    let attributes = AlarmAttributes<NeverMetadata>(
+      presentation: presentation,
+      tintColor: tintColor
+    )
+
+    // 6. Configure and schedule
+    let config = AlarmManager
+      .AlarmConfiguration<NeverMetadata>(
+        schedule: .relative(schedule),
+        attributes: attributes
+      )
+
+    do {
+      let alarm = try await manager.schedule(
+        id: UUID(), configuration: config
+      )
+      result(alarm.id.uuidString)
+    } catch {
+      result(FlutterError(
+        code: "SCHEDULE_ERROR",
+        message: "Failed to schedule recurrent alarm: \(error.localizedDescription)",
+        details: nil
+      ))
+    }
+  }
+
+  private func cancelAlarm(
+    call: FlutterMethodCall,
+    result: @escaping FlutterResult
+  ) async {
+    let manager = AlarmManager.shared
+    guard let alarmId = call.arguments as? String else { return }
+
+    do {
+      try await manager.cancel(id: UUID(uuidString: alarmId)!)
+      result(true)
+    } catch {
+      result(FlutterError(
+        code: "CANCEL_ERROR",
+        message: "Failed to cancel alarm \(alarmId): \(error.localizedDescription)",
+        details: nil
+      ))
+    }
   }
 
   private func stopAlarm(

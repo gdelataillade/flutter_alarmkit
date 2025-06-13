@@ -135,6 +135,58 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
   }
 
   @override
+  Future<String> scheduleRecurrentAlarm({
+    required int weekdayMask,
+    required int hour,
+    required int minute,
+    String? label,
+    String? tintColor,
+  }) async {
+    try {
+      final Map<String, dynamic> args = {
+        'weekdayMask': weekdayMask,
+        'hour': hour,
+        'minute': minute,
+        if (label != null) 'label': label,
+        if (tintColor != null) 'tintColor': tintColor,
+      };
+
+      final String? alarmId = await methodChannel.invokeMethod<String>(
+        'scheduleRecurrentAlarm',
+        args,
+      );
+
+      if (alarmId == null) {
+        throw PlatformException(
+          code: 'UNKNOWN_ERROR',
+          message: 'Failed to schedule recurrent alarm: null result',
+          details: null,
+        );
+      }
+
+      return alarmId;
+    } on PlatformException catch (e) {
+      if (e.code == 'UNSUPPORTED_VERSION') {
+        throw PlatformException(
+          code: 'UNSUPPORTED_VERSION',
+          message: 'AlarmKit is only available on iOS 26.0 and above',
+          details: null,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  @override
+  Future<bool> cancelAlarm({required String alarmId}) async {
+    final bool? canceled = await methodChannel.invokeMethod<bool>(
+      'cancelAlarm',
+      alarmId,
+    );
+    return canceled ?? false;
+  }
+
+  @override
   Future<bool> stopAlarm({required String alarmId}) async {
     final bool? stopped = await methodChannel.invokeMethod<bool>(
       'stopAlarm',

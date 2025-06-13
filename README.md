@@ -15,7 +15,9 @@ See more: https://developer.apple.com/documentation/alarmkit
 - Request authorization to schedule alarms
 - Schedule one-shot alarms
 - Schedule countdown alarms
+- Schedule recurrent alarms
 - Cancel alarms
+- Stop alarms
 
 ## Installation
 
@@ -74,6 +76,28 @@ final alarmId = await FlutterAlarmkit.scheduleCountdownAlarm(
   label: 'My Countdown Alarm',
   tintColor: '#0000FF',
 );
+```
+
+### Schedule a Recurrent Alarm
+
+To schedule a recurrent alarm:
+
+```dart
+final alarmId = await FlutterAlarmkit.scheduleRecurrentAlarm(
+  weekdays: {Weekday.monday, Weekday.wednesday, Weekday.friday},
+  hour: 10,
+  minute: 0,
+  label: 'My Recurrent Alarm',
+  tintColor: '#0000FF',
+);
+```
+
+### Cancel an Alarm
+
+To cancel an alarm:
+
+```dart
+await FlutterAlarmkit.cancelAlarm(alarmId: alarmId);
 ```
 
 ### Stop an Alarm

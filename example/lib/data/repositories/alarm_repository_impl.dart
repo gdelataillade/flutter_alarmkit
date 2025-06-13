@@ -40,8 +40,30 @@ class AlarmRepositoryImpl implements AlarmRepository {
   }
 
   @override
+  Future<String> scheduleRecurrentAlarm({
+    required Set<Weekday> weekdays,
+    required int hour,
+    required int minute,
+    required String label,
+    required String tintColor,
+  }) async {
+    return await _plugin.scheduleRecurrentAlarm(
+      weekdays: weekdays,
+      hour: hour,
+      minute: minute,
+      label: label,
+      tintColor: tintColor,
+    );
+  }
+
+  @override
   Future<String?> getPlatformVersion() async {
     return await _plugin.getPlatformVersion();
+  }
+
+  @override
+  Future<bool> cancelAlarm({required String alarmId}) async {
+    return await _plugin.cancelAlarm(alarmId: alarmId);
   }
 
   @override
