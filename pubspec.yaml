@@ -1,6 +1,6 @@
 name: flutter_alarmkit
 description: "A Flutter plugin for AlarmKit."
-version: 0.0.2
+version: 0.0.3
 homepage: https://github.com/gdelataillade/flutter_alarmkit
 
 environment:
