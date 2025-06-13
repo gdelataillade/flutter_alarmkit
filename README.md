@@ -4,18 +4,18 @@ A Flutter plugin that provides access to Apple's AlarmKit framework, introduced 
 
 See more: https://developer.apple.com/documentation/alarmkit
 
-⚠️ Note that this plugin is still in development. Feel free to contribute to the project.
+## ⚠️ Important Notes
+
+- This plugin is in active development and relies on Apple's AlarmKit framework (beta).
+- Requires iOS 26+ and macOS Tahoe with Xcode 26.0 (beta).
+- **Critical**: iOS 26 has known issues with Flutter's debug mode due to stricter memory protection. Use Profile mode for on-device testing and iOS 18.5 simulator for debugging. [See more](https://www.reddit.com/r/FlutterDev/comments/1l856sr/ios_26_warning_and_a_maybe_workaround/).
 
 ## Features
 
 - Request authorization to schedule alarms
-- Schedule one-shot alarms with custom metadata
-- Native integration with iOS AlarmKit framework
-
-## Requirements
-
-- iOS 26.0 (beta)
-- Xcode 26.0 (beta)
+- Schedule one-shot alarms
+- Schedule countdown alarms
+- Cancel alarms
 
 ## Installation
 
@@ -63,41 +63,26 @@ try {
 }
 ```
 
-## API Reference
+### Schedule a Countdown Alarm
 
-### `requestAuthorization()`
+To schedule a countdown alarm:
 
-Requests permission to schedule alarms. Returns whether the authorization was granted.
-
-Returns:
-- `Future<bool>`: `true` if authorization was granted, `false` if denied or not determined
-
-Example:
 ```dart
-try {
-  final isAuthorized = await FlutterAlarmkit.requestAuthorization();
-  if (isAuthorized) {
-    print('Alarm authorization granted');
-  } else {
-    print('Alarm authorization denied or not determined');
-  }
-} catch (e) {
-  print('Error requesting authorization: $e');
-}
+final alarmId = await FlutterAlarmkit.scheduleCountdownAlarm(
+  countdownDurationInSeconds: 10, // Duration before the alarm triggers
+  repeatDurationInSeconds: 5, // Duration between each repetition
+  label: 'My Countdown Alarm',
+  tintColor: '#0000FF',
+);
 ```
 
-### `scheduleOneShotAlarm()`
+### Stop an Alarm
 
-Schedules a one-time alarm for a specific date and time.
+To stop an alarm:
 
-Parameters:
-- `dateTime` (DateTime): When the alarm should trigger
-- `label` (String): The alarm's title
-
-Returns:
-- `Future<String>`: The unique identifier for the scheduled alarm
-
-Example:
+```dart
+await FlutterAlarmkit.stopAlarm(alarmId: alarmId);
+```
 
 ## Contributing
 
@@ -105,5 +90,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
+This project is licensed under the MIT License - see the `LICENSE` file for details.
