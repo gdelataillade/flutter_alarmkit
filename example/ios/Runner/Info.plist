@@ -53,5 +53,7 @@
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>This app needs access to the local network to discover and connect to alarm devices.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 </dict>
 </plist>

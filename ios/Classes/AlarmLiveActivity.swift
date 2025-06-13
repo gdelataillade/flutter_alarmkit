@@ -136,6 +136,9 @@ struct AlarmProgressView: View {
             )
             .progressViewStyle(.circular)
             .tint(tint)
+        case .alert:
+            Image(systemName: "bell.fill")
+                .foregroundStyle(tint)
         default:
             EmptyView()
         }

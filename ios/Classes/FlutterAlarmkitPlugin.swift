@@ -150,7 +150,7 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     return Color(uiColor: defaultTint)
   }
 
-  // MARK: - Scheduling
+  // MARK: - Manage alarms methods
 
   private func scheduleOneShotAlarm(
     call: FlutterMethodCall,
@@ -168,20 +168,24 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     let label = parseLabel(from: args)
     let date = Date(timeIntervalSince1970: timestampMs / 1000)
 
-    let presentation = AlarmPresentation(alert: AlarmPresentation.Alert(
+    let alertContent = AlarmPresentation.Alert(
       title: LocalizedStringResource(stringLiteral: label),
       stopButton: AlarmButton(text: "Stop", textColor: .white, systemImageName: "stop.circle")
-    ))
+    )
+
     let tintColor = parseTintColor(from: args)
+
+    let presentation = AlarmPresentation(alert: alertContent)
+
     let attributes = AlarmAttributes<NeverMetadata>(
       presentation: presentation,
       tintColor: tintColor
     )
-    let alarmConfiguration = AlarmManager
-      .AlarmConfiguration<NeverMetadata>(
+
+    let alarmConfiguration = AlarmManager.AlarmConfiguration<NeverMetadata>(
         schedule: .fixed(date),
         attributes: attributes
-      )
+    )
 
     // 7. Schedule and return the UUID string
     do {
@@ -263,8 +267,6 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
       ))
     } 
   }
-
-  // MARK: - Recurrent Alarms
 
   private func scheduleRecurrentAlarm(
     call: FlutterMethodCall,
@@ -378,28 +380,6 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
         message: "Failed to stop alarm \(alarmId): \(error.localizedDescription)",
         details: nil
       ))
-    }
-  }
-}
-
-@available(iOS 26.0, *)
-extension Alarm {
-  var alertingTime: Date? {
-    guard let schedule else { return nil }
-
-    switch schedule {
-    case .fixed(let date):
-      return date
-    case .relative(let relative):
-      var components = Calendar.current.dateComponents(
-        [.year, .month, .day, .hour, .minute],
-        from: Date()
-      )
-      components.hour = relative.time.hour
-      components.minute = relative.time.minute
-      return Calendar.current.date(from: components)
-    @unknown default:
-      return nil
     }
   }
 }
