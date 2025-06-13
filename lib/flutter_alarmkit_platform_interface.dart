@@ -76,6 +76,21 @@ abstract class FlutterAlarmkitPlatform extends PlatformInterface {
     );
   }
 
+  /// Schedules a countdown alarm for the specified duration.
+  ///
+  /// [countdownDurationInSeconds] is the duration of the countdown in seconds.
+  /// [repeatDurationInSeconds] is the duration of the repeat in seconds.
+  /// [label] is an optional string that will be displayed as the alarm title.
+  ///
+  Future<String> setCountdownAlarm({
+    required int countdownDurationInSeconds,
+    required int repeatDurationInSeconds,
+    String? label,
+    String? tintColor,
+  }) {
+    throw UnimplementedError('setCountdownAlarm() has not been implemented.');
+  }
+
   /// Stops an alarm with the given ID.
   ///
   /// [alarmId] is the UUID of the alarm to stop.

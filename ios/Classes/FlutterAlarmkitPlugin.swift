@@ -25,14 +25,15 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     case "scheduleOneShotAlarm":
       Task { await self.scheduleOneShotAlarm(call: call, result: result) }
 
+    case "setCountdownAlarm":
+      Task { await self.setCountdownAlarm(call: call, result: result) }
+
     case "stopAlarm":
       Task { await self.stopAlarm(call: call, result: result) }
     default:
       result(FlutterMethodNotImplemented)
     }
   }
-
-  struct NeverMetadata: AlarmMetadata {}
 
   // MARK: - Helpers
 
@@ -84,43 +85,43 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
 
     // 1. Handle authorization state
     switch manager.authorizationState {
-    case .notDetermined:
-      do {
-        let state = try await manager.requestAuthorization()
-        guard state == .authorized else {
+      case .notDetermined:
+        do {
+          let state = try await manager.requestAuthorization()
+          guard state == .authorized else {
+            result(FlutterError(
+              code: "NOT_AUTHORIZED",
+              message: "AlarmKit authorization denied by user",
+              details: nil
+            ))
+            return
+          }
+        } catch {
           result(FlutterError(
-            code: "NOT_AUTHORIZED",
-            message: "AlarmKit authorization denied by user",
+            code: "AUTH_ERROR",
+            message: "Failed to request alarm authorization: \(error)",
             details: nil
           ))
           return
         }
-      } catch {
+
+      case .denied:
         result(FlutterError(
-          code: "AUTH_ERROR",
-          message: "Failed to request alarm authorization: \(error)",
+          code: "NOT_AUTHORIZED",
+          message: "AlarmKit authorization denied or restricted. Please enable in Settings.",
           details: nil
         ))
         return
-      }
 
-    case .denied:
-      result(FlutterError(
-        code: "NOT_AUTHORIZED",
-        message: "AlarmKit authorization denied or restricted. Please enable in Settings.",
-        details: nil
-      ))
-      return
-
-    case .authorized:
-      break
-    @unknown default:
-      result(FlutterError(
-        code: "UNKNOWN_AUTH_STATE",
-        message: "Unknown authorization state: \(manager.authorizationState)",
-        details: nil
-      ))
-      return
+      case .authorized:
+        break
+      @unknown default:
+        result(FlutterError(
+          code: "UNKNOWN_AUTH_STATE",
+          message: "Unknown authorization state: \(manager.authorizationState)",
+          details: nil
+        ))
+        return
     }
 
     // 2. Parse arguments
@@ -140,11 +141,12 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     let date = Date(timeIntervalSince1970: timestampMs / 1000)
 
     // 3. Build the presentation
-    let alert = AlarmPresentation.Alert(
+    let stopButton = AlarmButton(text: "Stop", textColor: .white, systemImageName: "stop.circle")
+
+    let alertPresentation = AlarmPresentation.Alert(
       title: LocalizedStringResource(stringLiteral: label),
-      stopButton: AlarmButton(text: "Stop", textColor: .white, systemImageName: "stop.circle")
+      stopButton: stopButton
     )
-    let presentation = AlarmPresentation(alert: alert)
 
     // 4. Determine tintColor (hex string like "#RRGGBB")
     let defaultTint = UIColor.blue
@@ -158,12 +160,12 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
 
     // 5. Wrap in attributes
     let attributes = AlarmAttributes<NeverMetadata>(
-      presentation: presentation,
+      presentation: AlarmPresentation(alert: alertPresentation),
       tintColor: Color(uiColor: tint)
     )
 
     // 6. Create one-shot fixed schedule
-    let config = AlarmManager
+    let alarmConfiguration = AlarmManager
       .AlarmConfiguration<NeverMetadata>(
         schedule: .fixed(date),
         attributes: attributes
@@ -173,7 +175,7 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     do {
       let alarm = try await manager.schedule(
         id: UUID(),
-        configuration: config
+        configuration: alarmConfiguration
       )
       result(alarm.id.uuidString)
     } catch {
@@ -183,6 +185,138 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
         details: nil
       ))
     }
+  }
+
+  private func setCountdownAlarm(
+    call: FlutterMethodCall,
+    result: @escaping FlutterResult
+  ) async {
+    let manager = AlarmManager.shared
+
+    // 1. Handle authorization state
+    switch manager.authorizationState {
+      case .notDetermined:
+        do {
+          let state = try await manager.requestAuthorization()
+          guard state == .authorized else {
+            result(FlutterError(
+              code: "NOT_AUTHORIZED",
+              message: "AlarmKit authorization denied by user",
+              details: nil
+            ))
+            return
+          }
+        } catch {
+          result(FlutterError(
+            code: "AUTH_ERROR",
+            message: "Failed to request alarm authorization: \(error)",
+            details: nil
+          ))
+          return
+        }
+
+      case .denied:
+        result(FlutterError(
+          code: "NOT_AUTHORIZED",
+          message: "AlarmKit authorization denied or restricted. Please enable in Settings.",
+          details: nil
+        ))
+        return
+
+      case .authorized:
+        break
+      @unknown default:
+        result(FlutterError(
+          code: "UNKNOWN_AUTH_STATE",
+          message: "Unknown authorization state: \(manager.authorizationState)",
+          details: nil
+        ))
+        return
+    }
+
+    // 2. Parse arguments
+    guard
+      let args = call.arguments as? [String: Any],
+      let countdownDurationInSeconds = args["countdownDurationInSeconds"] as? Int,
+      let repeatDurationInSeconds = args["repeatDurationInSeconds"] as? Int,
+      countdownDurationInSeconds != nil,
+      repeatDurationInSeconds != nil
+    else {
+      result(FlutterError(
+        code: "BAD_ARGS",
+        message: "Invalid arguments for setCountdownAlarm",
+        details: nil
+      ))
+      return
+    }
+
+    let label = args["label"] as? String ?? "Alarm"
+    let countdownDuration = Alarm.CountdownDuration(preAlert: TimeInterval(countdownDurationInSeconds), postAlert: TimeInterval(repeatDurationInSeconds))
+
+    // 3. Build the presentation
+    let stopButton = AlarmButton(text: "Done", textColor: .white, systemImageName: "stop.circle")
+    let repeatButton = AlarmButton(text: "Repeat", textColor: .white, systemImageName: "repeat.circle")
+    let pauseButton = AlarmButton(text: "Pause", textColor: .green, systemImageName: "pause.circle")
+    let resumeButton = AlarmButton(text: "Resume", textColor: .green, systemImageName: "play.circle")
+
+    let countdownPresentation = AlarmPresentation.Countdown(
+      title: LocalizedStringResource(stringLiteral: label),
+      pauseButton: pauseButton,
+    )
+
+    let pausedPresentation = AlarmPresentation.Paused(
+      title: LocalizedStringResource(stringLiteral: label),
+      resumeButton: resumeButton
+    )
+
+    let alertPresentation = AlarmPresentation.Alert(
+      title: LocalizedStringResource(stringLiteral: label),
+      stopButton: stopButton,
+      secondaryButton: repeatButton,
+      secondaryButtonBehavior: .countdown
+    )
+
+    // 4. Determine tintColor (hex string like "#RRGGBB")
+    let defaultTint = UIColor.blue
+    let tint: UIColor
+    if let hex = args["tintColor"] as? String,
+       let parsed = color(from: hex) {
+      tint = parsed
+    } else {
+      tint = defaultTint
+    }
+
+    // 5. Wrap in attributes
+    let attributes = AlarmAttributes<NeverMetadata>(
+      presentation: AlarmPresentation(
+        alert: alertPresentation,
+        countdown: countdownPresentation,
+        paused: pausedPresentation
+      ),
+      tintColor: Color(uiColor: tint)
+    )
+
+    // 6. Create alarm
+    let alarmConfiguration = AlarmManager
+      .AlarmConfiguration<NeverMetadata>(
+        countdownDuration: countdownDuration,
+        attributes: attributes,
+      )
+
+    // 7. Schedule and return the UUID string
+    do {
+      let alarm = try await manager.schedule(
+        id: UUID(),
+        configuration: alarmConfiguration
+      )
+      result(alarm.id.uuidString)
+    } catch {
+      result(FlutterError(
+        code: "SCHEDULE_ERROR",
+        message: "Failed to schedule countdown alarm: \(error.localizedDescription)",
+        details: nil
+      ))
+    } 
   }
 
   private func stopAlarm(

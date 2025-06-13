@@ -4,7 +4,7 @@ A Flutter plugin that provides access to Apple's AlarmKit framework, introduced 
 
 See more: https://developer.apple.com/documentation/alarmkit
 
-Note that this plugin is still in development. Feel free to contribute to the project.
+⚠️ Note that this plugin is still in development. Feel free to contribute to the project.
 
 ## Features
 

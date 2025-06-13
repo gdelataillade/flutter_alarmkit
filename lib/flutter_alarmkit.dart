@@ -32,6 +32,11 @@ class FlutterAlarmkit {
   ///
   /// [timestamp] should be a Unix timestamp in milliseconds since epoch.
   /// [label] is an optional string that will be displayed as the alarm title.
+  /// [tintColor] is an optional string representing a color that helps users associate the alarm with your app.
+  /// This color is used throughout the alarm presentation:
+  /// - In the alert presentation, it sets the fill color of the secondary button
+  /// - On the lock screen, it tints the symbol in the secondary button, the alarm title, and the countdown
+  /// - In the Dynamic Island, it's used for visual consistency
   ///
   /// Returns a [Future<String>] that completes with the UUID of the scheduled alarm.
   ///
@@ -47,6 +52,31 @@ class FlutterAlarmkit {
   }) {
     return FlutterAlarmkitPlatform.instance.scheduleOneShotAlarm(
       timestamp: timestamp,
+      label: label,
+      tintColor: tintColor,
+    );
+  }
+
+  /// Schedules a countdown alarm for the specified duration.
+  ///
+  /// [countdownDurationInSeconds] is the duration of the countdown in seconds.
+  /// [repeatDurationInSeconds] is the duration of the repeat in seconds.
+  /// [label] is an optional string that will be displayed as the alarm title.
+  /// [tintColor] is an optional string representing a color that helps users associate the alarm with your app.
+  /// This color is used throughout the alarm presentation:
+  /// - In the alert presentation, it sets the fill color of the secondary button
+  /// - On the lock screen, it tints the symbol in the secondary button, the alarm title, and the countdown
+  /// - In the Dynamic Island, it's used for visual consistency
+  ///
+  Future<String> setCountdownAlarm({
+    required int countdownDurationInSeconds,
+    required int repeatDurationInSeconds,
+    String? label,
+    String? tintColor,
+  }) {
+    return FlutterAlarmkitPlatform.instance.setCountdownAlarm(
+      countdownDurationInSeconds: countdownDurationInSeconds,
+      repeatDurationInSeconds: repeatDurationInSeconds,
       label: label,
       tintColor: tintColor,
     );

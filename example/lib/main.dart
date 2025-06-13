@@ -75,7 +75,7 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
-  Future<void> _scheduleTestAlarm() async {
+  Future<void> _scheduleOneShotAlarm() async {
     setState(() {
       _scheduleStatus = 'Scheduling...';
       _lastAlarmId = null;
@@ -137,6 +137,53 @@ class _MyAppState extends State<MyApp> {
           default:
             _scheduleStatus = 'Error: ${e.message}';
         }
+      });
+    }
+  }
+
+  Future<void> _scheduleCountdownAlarm() async {
+    setState(() {
+      _scheduleStatus = 'Scheduling...';
+      _lastAlarmId = null;
+    });
+
+    try {
+      if (_authStatus != 'Granted') {
+        final granted = await _flutterAlarmkitPlugin.requestAuthorization();
+
+        if (!mounted) return;
+
+        if (!granted) {
+          setState(() {
+            _authStatus = 'Denied';
+            _scheduleStatus = 'Please grant alarm permission in Settings';
+          });
+          return;
+        }
+
+        setState(() {
+          _authStatus = 'Granted';
+        });
+      }
+
+      final alarmId = await _flutterAlarmkitPlugin.setCountdownAlarm(
+        countdownDurationInSeconds: 10,
+        repeatDurationInSeconds: 5,
+        label: 'Test Countdown Alarm',
+        tintColor: '#0000FF', // blue
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _scheduleStatus = 'Alarm scheduled!';
+        _lastAlarmId = alarmId;
+      });
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _scheduleStatus = 'Error: ${e.message}';
       });
     }
   }
@@ -217,8 +264,14 @@ class _MyAppState extends State<MyApp> {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed:
-                      _authStatus == 'Granted' ? _scheduleTestAlarm : null,
+                      _authStatus == 'Granted' ? _scheduleOneShotAlarm : null,
                   child: const Text('Schedule Test Alarm (5s)'),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed:
+                      _authStatus == 'Granted' ? _scheduleCountdownAlarm : null,
+                  child: const Text('Schedule Countdown Alarm (10s)'),
                 ),
               ],
             ),
