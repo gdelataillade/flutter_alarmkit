@@ -1,3 +1,7 @@
+## 0.0.6
+* Add Live Activity support.
+* Add installation guide.
+
 ## 0.0.5
 * Add `scheduleRecurrentAlarm` method.
 * Add `cancelAlarm` method.
