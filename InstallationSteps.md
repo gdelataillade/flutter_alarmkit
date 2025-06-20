@@ -27,18 +27,9 @@ Open `ios/Runner/Info.plist` and add the following:
 
 ---
 
-### 3. Enable Push Notifications
+### 3. Add a Live Activity Widget Extension
 
 In Xcode:
-- Open `Runner.xcworkspace`
-- Select the **Runner** target → **Signing & Capabilities**
-- Click **+ Capability** → **Add Push Notifications**
-
----
-
-### 4. Add a Live Activity Widget Extension
-
-Still in Xcode:
 1. **File** > **New** > **Target**
 2. Select **Widget Extension**
 3. Name it `AlarmkitWidget`
@@ -47,20 +38,20 @@ Still in Xcode:
 
 ---
 
-### 5. Add the Widget UI Code
+### 4. Add the Widget UI Code
 
 Replace the generated files with the two files provided by the plugin:
 - [`AlarmkitWidget.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/AlarmkitWidget/AlarmkitWidget.swift)
 - [`AlarmkitWidgetLiveActivity.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/AlarmkitWidget/AlarmkitWidgetLiveActivity.swift)
 - [`AlarmkitWidgetBundle.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/AlarmkitWidget/AlarmkitWidgetBundle.swift)
 
-Also add [`AppIntents.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/AlarmkitWidget/AppIntents.swift) to the same folder.
+Also add [`AppIntents.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/AlarmkitWidget/AppIntents.swift) to the same `AlarmkitWidget` folder.
 
 These files define how the alarm appears on the Lock Screen and Dynamic Island.
 
 ---
 
-### 6. Update Podfile
+### 5. Update Podfile
 
 Open `ios/Podfile` and make sure it contains:
 
@@ -73,7 +64,6 @@ target 'Runner' do
   target 'AlarmkitWidgetExtension' do
     inherit! :search_paths
     use_frameworks!
-    use_modular_headers!
     pod 'flutter_alarmkit', :path => '.symlinks/plugins/flutter_alarmkit/ios'
   end
 end
@@ -81,7 +71,7 @@ end
 
 Here's example app's [Podfile](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/Podfile).
 
-### 7. Reorder build phases
+### 6. Reorder build phases
 
 In Xcode:
 - Select the **Runner** target
@@ -89,7 +79,7 @@ In Xcode:
 - `[CP] Embed Pods Frameworks` and `Embed Foundation Extensions` should be above `Thin Binary`.
 
 
-### 8. Build and Run
+### 7. Build and Run
 
 Then run:
 
