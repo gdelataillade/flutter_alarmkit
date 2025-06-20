@@ -2,6 +2,8 @@
 
 A Flutter plugin that provides access to Apple's AlarmKit framework, introduced in iOS 26 (WWDC 2025). This plugin allows you to schedule and manage prominent alarms and countdowns in your Flutter applications on iOS devices.
 
+Your alarms will ring even when Do Not Disturb is enabled or if the app has been terminated.
+
 See more: https://developer.apple.com/documentation/alarmkit
 
 ## ⚠️ Important Notes
@@ -12,12 +14,21 @@ See more: https://developer.apple.com/documentation/alarmkit
 
 ## Features
 
+### Available features
+
 - Request authorization to schedule alarms
 - Schedule one-shot alarms
 - Schedule countdown alarms
 - Schedule recurrent alarms
 - Cancel alarms
 - Stop alarms
+
+### Coming soon
+
+- Custom sound
+- Custom icon
+- Custom tint color
+- Custom alert style
 
 ## Installation
 
