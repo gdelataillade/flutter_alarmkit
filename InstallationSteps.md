@@ -50,11 +50,11 @@ Still in Xcode:
 ### 5. Add the Widget UI Code
 
 Replace the generated files with the two files provided by the plugin:
-- `AlarmkitWidget.swift`
-- `AlarmkitWidgetLiveActivity.swift`
-- `AlarmkitWidgetBundle.swift`
+- [`AlarmkitWidget.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/AlarmkitWidget/AlarmkitWidget.swift)
+- [`AlarmkitWidgetLiveActivity.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/AlarmkitWidget/AlarmkitWidgetLiveActivity.swift)
+- [`AlarmkitWidgetBundle.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/AlarmkitWidget/AlarmkitWidgetBundle.swift)
 
-Also add `AppIntents.swift` to the same folder.
+Also add [`AppIntents.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/AlarmkitWidget/AppIntents.swift) to the same folder.
 
 These files define how the alarm appears on the Lock Screen and Dynamic Island.
 
@@ -78,6 +78,8 @@ target 'Runner' do
   end
 end
 ```
+
+Here's example app's [Podfile](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/Podfile).
 
 ### 7. Reorder build phases
 
