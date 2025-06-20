@@ -21,12 +21,7 @@ See more: https://developer.apple.com/documentation/alarmkit
 
 ## Installation
 
-Run:
-
-```bash
-flutter pub add flutter_alarmkit
-flutter pub get
-```
+Please carefully follow the installation steps in [InstallationSteps.md](InstallationSteps.md).
 
 ## Usage
 
