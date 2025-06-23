@@ -1,3 +1,9 @@
+## 0.0.7
+* Add `getAlarms` method.
+* Add `countdownAlarm` method.
+* Add `pauseAlarm` method.
+* Add `resumeAlarm` method.
+
 ## 0.0.6
 * Add Live Activity support.
 * Add installation guide.

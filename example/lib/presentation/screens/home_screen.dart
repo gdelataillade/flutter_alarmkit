@@ -1,3 +1,4 @@
+import 'package:example/presentation/widgets/alarms_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/alarm_bloc.dart';
@@ -16,14 +17,13 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize the BLoC when the screen is created
     context.read<AlarmBloc>().add(InitializeAlarm());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('AlarmKit Example 0.0.6')),
+      appBar: AppBar(title: const Text('AlarmKit Example 0.0.7')),
       body: BlocBuilder<AlarmBloc, AlarmState>(
         builder: (context, state) {
           return Center(
@@ -37,6 +37,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   const AuthSection(),
                   const SizedBox(height: 40),
                   const AlarmControls(),
+                  const SizedBox(height: 40),
+                  const AlarmsList(),
                 ],
               ),
             ),
