@@ -1,4 +1,6 @@
 /// Represents the days of the week for recurrent alarms.
+// ignore_for_file: public_member_api_docs, dangling_library_doc_comments
+
 enum Weekday {
   monday,
   tuesday,

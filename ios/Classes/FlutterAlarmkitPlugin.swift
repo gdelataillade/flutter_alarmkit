@@ -31,11 +31,24 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     case "scheduleRecurrentAlarm":
       Task { await self.scheduleRecurrentAlarm(call: call, result: result) }
 
+    case "getAlarms":
+      Task { await self.getAlarms(result: result) }
+
     case "cancelAlarm":
       Task { await self.cancelAlarm(call: call, result: result) }
 
+    case "countdownAlarm":
+      Task { await self.countdownAlarm(call: call, result: result) }
+
+    case "pauseAlarm":
+      Task { await self.pauseAlarm(call: call, result: result) }
+
+    case "resumeAlarm":
+      Task { await self.resumeAlarm(call: call, result: result) }
+
     case "stopAlarm":
       Task { await self.stopAlarm(call: call, result: result) }
+
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -338,6 +351,21 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     }
   }
 
+  private func getAlarms(result: @escaping FlutterResult) async {
+    let manager = AlarmManager.shared
+    do {
+        let alarms = try manager.alarms
+        let alarmsData = alarms.compactMap { $0.toDictionary() }
+        result(alarmsData)
+    } catch {
+        result(FlutterError(
+            code: "GET_ALARMS_ERROR",
+            message: "Failed to get alarms: \(error.localizedDescription)",
+            details: nil
+        ))
+    }
+  }
+
   private func cancelAlarm(
     call: FlutterMethodCall,
     result: @escaping FlutterResult
@@ -346,7 +374,7 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     guard let alarmId = call.arguments as? String else { return }
 
     do {
-      try await manager.cancel(id: UUID(uuidString: alarmId)!)
+      try manager.cancel(id: UUID(uuidString: alarmId)!)
       result(true)
     } catch {
       result(FlutterError(
@@ -356,6 +384,64 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
       ))
     }
   }
+
+  private func countdownAlarm(
+    call: FlutterMethodCall,
+    result: @escaping FlutterResult
+  ) async {
+    let manager = AlarmManager.shared
+    guard let alarmId = call.arguments as? String else { return }
+
+    do {
+      try manager.countdown(id: UUID(uuidString: alarmId)!)
+      result(true)
+    } catch {
+      result(FlutterError(
+        code: "COUNTDOWN_ERROR",
+        message: "Failed to countdown alarm \(alarmId): \(error.localizedDescription)",
+        details: nil
+      ))
+    }
+  }
+
+  private func pauseAlarm(
+    call: FlutterMethodCall,
+    result: @escaping FlutterResult
+  ) async {
+    let manager = AlarmManager.shared
+    guard let alarmId = call.arguments as? String else { return }
+
+    do {
+      try manager.pause(id: UUID(uuidString: alarmId)!)
+      result(true)
+    } catch {
+      result(FlutterError(
+        code: "PAUSE_ERROR",
+        message: "Failed to pause alarm \(alarmId): \(error.localizedDescription)",
+        details: nil
+      ))
+    }
+  }
+
+  private func resumeAlarm(
+    call: FlutterMethodCall,
+    result: @escaping FlutterResult
+  ) async {
+    let manager = AlarmManager.shared
+    guard let alarmId = call.arguments as? String else { return }
+
+    do {
+      try manager.resume(id: UUID(uuidString: alarmId)!)
+      result(true)
+    } catch {
+      result(FlutterError(
+        code: "RESUME_ERROR",
+        message: "Failed to resume alarm \(alarmId): \(error.localizedDescription)",
+        details: nil
+      ))
+    }
+  }
+
 
   private func stopAlarm(
     call: FlutterMethodCall,

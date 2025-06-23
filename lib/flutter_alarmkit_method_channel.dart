@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-import 'flutter_alarmkit_platform_interface.dart';
+import 'package:flutter_alarmkit/flutter_alarmkit_platform_interface.dart';
 
 /// An implementation of [FlutterAlarmkitPlatform] that uses method channels.
 class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
@@ -20,7 +20,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
   @override
   Future<bool> requestAuthorization() async {
     try {
-      final bool granted =
+      final granted =
           await methodChannel.invokeMethod<bool>('requestAuthorization') ??
           false;
       return granted;
@@ -29,7 +29,6 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
         throw PlatformException(
           code: 'UNSUPPORTED_VERSION',
           message: 'AlarmKit is only available on iOS 26.0 and above',
-          details: null,
         );
       }
       rethrow;
@@ -39,7 +38,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
   @override
   Future<int> getAuthorizationState() async {
     try {
-      final int state =
+      final state =
           await methodChannel.invokeMethod<int>('getAuthorizationState') ?? 0;
       return state;
     } on PlatformException catch (e) {
@@ -47,7 +46,6 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
         throw PlatformException(
           code: 'UNSUPPORTED_VERSION',
           message: 'AlarmKit is only available on iOS 26.0 and above',
-          details: null,
         );
       }
       rethrow;
@@ -61,13 +59,13 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
     String? tintColor,
   }) async {
     try {
-      final Map<String, dynamic> args = {
+      final args = {
         'timestamp': timestamp,
         if (label != null) 'label': label,
         if (tintColor != null) 'tintColor': tintColor,
       };
 
-      final String? alarmId = await methodChannel.invokeMethod<String>(
+      final alarmId = await methodChannel.invokeMethod<String>(
         'scheduleOneShotAlarm',
         args,
       );
@@ -76,7 +74,6 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
         throw PlatformException(
           code: 'UNKNOWN_ERROR',
           message: 'Failed to schedule alarm: null result',
-          details: null,
         );
       }
 
@@ -86,7 +83,6 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
         throw PlatformException(
           code: 'UNSUPPORTED_VERSION',
           message: 'AlarmKit is only available on iOS 26.0 and above',
-          details: null,
         );
       }
       rethrow;
@@ -101,14 +97,14 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
     String? tintColor,
   }) async {
     try {
-      final Map<String, dynamic> args = {
+      final args = {
         'countdownDurationInSeconds': countdownDurationInSeconds,
         'repeatDurationInSeconds': repeatDurationInSeconds,
         if (label != null) 'label': label,
         if (tintColor != null) 'tintColor': tintColor,
       };
 
-      final String? alarmId = await methodChannel.invokeMethod<String>(
+      final alarmId = await methodChannel.invokeMethod<String>(
         'setCountdownAlarm',
         args,
       );
@@ -117,7 +113,6 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
         throw PlatformException(
           code: 'UNKNOWN_ERROR',
           message: 'Failed to schedule alarm: null result',
-          details: null,
         );
       }
 
@@ -127,7 +122,6 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
         throw PlatformException(
           code: 'UNSUPPORTED_VERSION',
           message: 'AlarmKit is only available on iOS 26.0 and above',
-          details: null,
         );
       }
       rethrow;
@@ -143,7 +137,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
     String? tintColor,
   }) async {
     try {
-      final Map<String, dynamic> args = {
+      final args = <String, dynamic>{
         'weekdayMask': weekdayMask,
         'hour': hour,
         'minute': minute,
@@ -151,7 +145,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
         if (tintColor != null) 'tintColor': tintColor,
       };
 
-      final String? alarmId = await methodChannel.invokeMethod<String>(
+      final alarmId = await methodChannel.invokeMethod<String>(
         'scheduleRecurrentAlarm',
         args,
       );
@@ -160,7 +154,6 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
         throw PlatformException(
           code: 'UNKNOWN_ERROR',
           message: 'Failed to schedule recurrent alarm: null result',
-          details: null,
         );
       }
 
@@ -170,7 +163,6 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
         throw PlatformException(
           code: 'UNSUPPORTED_VERSION',
           message: 'AlarmKit is only available on iOS 26.0 and above',
-          details: null,
         );
       }
       rethrow;
@@ -178,17 +170,40 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
   }
 
   @override
-  Future<bool> cancelAlarm({required String alarmId}) async {
-    final bool? canceled = await methodChannel.invokeMethod<bool>(
-      'cancelAlarm',
-      alarmId,
+  Future<List<Map<String, dynamic>>> getAlarms() async {
+    final alarms = await methodChannel.invokeListMethod<Map<dynamic, dynamic>>(
+      'getAlarms',
     );
-    return canceled ?? false;
+    return alarms?.map((alarm) => alarm.cast<String, dynamic>()).toList() ?? [];
+  }
+
+  @override
+  Future<bool> pauseAlarm({required String alarmId}) async {
+    return await methodChannel.invokeMethod<bool>('pauseAlarm', alarmId) ??
+        false;
+  }
+
+  @override
+  Future<bool> resumeAlarm({required String alarmId}) async {
+    return await methodChannel.invokeMethod<bool>('resumeAlarm', alarmId) ??
+        false;
+  }
+
+  @override
+  Future<bool> countdownAlarm({required String alarmId}) async {
+    return await methodChannel.invokeMethod<bool>('countdownAlarm', alarmId) ??
+        false;
+  }
+
+  @override
+  Future<bool> cancelAlarm({required String alarmId}) async {
+    return await methodChannel.invokeMethod<bool>('cancelAlarm', alarmId) ??
+        false;
   }
 
   @override
   Future<bool> stopAlarm({required String alarmId}) async {
-    final bool? stopped = await methodChannel.invokeMethod<bool>(
+    final stopped = await methodChannel.invokeMethod<bool>(
       'stopAlarm',
       alarmId,
     );
