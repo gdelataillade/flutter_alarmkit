@@ -9,6 +9,15 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
   @visibleForTesting
   final methodChannel = const MethodChannel('flutter_alarmkit');
 
+  static const _eventChannel = EventChannel('flutter_alarmkit/events');
+  Stream<dynamic>? _alarmUpdates;
+
+  @override
+  Stream<dynamic> alarmUpdates() {
+    _alarmUpdates ??= _eventChannel.receiveBroadcastStream();
+    return _alarmUpdates!;
+  }
+
   @override
   Future<String?> getPlatformVersion() async {
     final version = await methodChannel.invokeMethod<String>(

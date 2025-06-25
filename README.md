@@ -26,15 +26,11 @@ See more: https://developer.apple.com/documentation/alarmkit
 - Schedule one-shot alarms
 - Schedule countdown alarms
 - Schedule recurrent alarms
+- Listen to alarm updates
 - Cancel alarms
 - Stop alarms
 
-### Coming soon
-
-- Custom sound
-- Custom icon
-- Custom tint color
-- Custom alert style
+More customizations coming soon.
 
 ## Installation
 
@@ -60,6 +56,19 @@ try {
   print('Error requesting authorization: $e');
 }
 ```
+
+### Listen to alarm updates
+
+To listen to alarm updates (when alarms are added, updated, or removed):
+
+```dart
+final stream = FlutterAlarmkit.alarmUpdates();
+
+stream.listen((alarmUpdate) {
+  print('Alarm updated: $alarmUpdate');
+});
+```
+
 
 ### Schedule a One-Shot Alarm
 

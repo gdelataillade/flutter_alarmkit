@@ -95,4 +95,8 @@ abstract class FlutterAlarmkitPlatform extends PlatformInterface {
   Future<bool> resumeAlarm({required String alarmId}) {
     throw UnimplementedError('resumeAlarm() has not been implemented.');
   }
+
+  Stream<dynamic> alarmUpdates() {
+    throw UnimplementedError('alarmUpdates() has not been implemented.');
+  }
 }

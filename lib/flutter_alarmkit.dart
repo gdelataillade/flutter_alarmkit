@@ -50,6 +50,19 @@ class FlutterAlarmkit {
     return FlutterAlarmkitPlatform.instance.getAuthorizationState();
   }
 
+  /// A stream of alarm updates.
+  ///
+  /// This stream emits events when alarms are added, updated, or removed.
+  ///
+  /// Returns a [Stream<dynamic>] that emits events when alarms are added,
+  /// updated, or removed.
+  ///
+  /// Throws a [PlatformException] if the platform version is not supported
+  /// (iOS < 26.0)
+  static Stream<dynamic> alarmUpdates() {
+    return FlutterAlarmkitPlatform.instance.alarmUpdates();
+  }
+
   /// Schedules a one-time alarm for the specified timestamp.
   ///
   /// [timestamp] should be a Unix timestamp in milliseconds since epoch.

@@ -12,6 +12,10 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     )
     let instance = FlutterAlarmkitPlugin()
     registrar.addMethodCallDelegate(instance, channel: channel)
+
+    let eventChannel = FlutterEventChannel(name: "flutter_alarmkit/events", binaryMessenger: registrar.messenger())
+    let streamHandler = AlarmUpdateStreamHandler()
+    eventChannel.setStreamHandler(streamHandler)
   }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
