@@ -1,3 +1,6 @@
+## 0.0.8
+* Add `alarmUpdates` method.
+
 ## 0.0.7
 * Add `getAlarms` method.
 * Add `countdownAlarm` method.
