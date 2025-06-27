@@ -40,7 +40,7 @@ In Xcode:
 
 ### 4. Add the Widget UI Code
 
-Replace the generated files with the two files provided by the plugin:
+Replace the generated files with the following files provided by the plugin:
 - [`AlarmkitWidget.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/AlarmkitWidget/AlarmkitWidget.swift)
 - [`AlarmkitWidgetLiveActivity.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/AlarmkitWidget/AlarmkitWidgetLiveActivity.swift)
 - [`AlarmkitWidgetBundle.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/AlarmkitWidget/AlarmkitWidgetBundle.swift)
