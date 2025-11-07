@@ -11,13 +11,6 @@ See more: https://developer.apple.com/documentation/alarmkit
 <img width="100" alt="IMG_4597" src="https://github.com/user-attachments/assets/5dd478f0-c528-44e2-98f4-9228e3d2b20a" />
 <img width="100" alt="IMG_4598" src="https://github.com/user-attachments/assets/b69ca13a-2ab2-4e1e-a29d-d72c082dd885" />
 
-
-## ⚠️ Important Notes
-
-- This plugin is in active development and relies on Apple's AlarmKit framework (beta).
-- Requires iOS 26+ and macOS Tahoe with Xcode 26.0 (beta).
-- **Critical**: iOS 26 has known issues with Flutter's debug mode due to stricter memory protection. Use Profile mode for on-device testing and iOS 18.5 simulator for debugging. [See more](https://www.reddit.com/r/FlutterDev/comments/1l856sr/ios_26_warning_and_a_maybe_workaround/).
-
 ## Features
 
 ### Available features
