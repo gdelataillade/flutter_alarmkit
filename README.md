@@ -20,6 +20,7 @@ See more: https://developer.apple.com/documentation/alarmkit
 - Schedule countdown alarms
 - Schedule recurrent alarms
 - Listen to alarm updates
+- Set custom alarm sounds
 - Cancel alarms
 - Stop alarms
 

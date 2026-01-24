@@ -1,1 +1,4 @@
+analyzer:
+  errors:
+    lines_longer_than_80_chars: ignore
 include: package:very_good_analysis/analysis_options.yaml

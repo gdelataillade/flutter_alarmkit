@@ -19,9 +19,9 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/integration_test/ios"
 
 SPEC CHECKSUMS:
-  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
-  flutter_alarmkit: b5aa316acc4d00450da556241864cda3b349321c
-  integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  flutter_alarmkit: fcec41c9c26868e0d9d01272e8d781fb876813ae
+  integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
 
 PODFILE CHECKSUM: 0f051e46098b03e48debf6607139e0ec643bc6e1
 

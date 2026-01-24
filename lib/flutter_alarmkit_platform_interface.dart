@@ -45,6 +45,7 @@ abstract class FlutterAlarmkitPlatform extends PlatformInterface {
     required double timestamp,
     String? label,
     String? tintColor,
+    String? soundPath,
   }) {
     throw UnimplementedError(
       'scheduleOneShotAlarm() has not been implemented.',
@@ -56,6 +57,7 @@ abstract class FlutterAlarmkitPlatform extends PlatformInterface {
     required int repeatDurationInSeconds,
     String? label,
     String? tintColor,
+    String? soundPath,
   }) {
     throw UnimplementedError('setCountdownAlarm() has not been implemented.');
   }
@@ -66,6 +68,7 @@ abstract class FlutterAlarmkitPlatform extends PlatformInterface {
     required int minute,
     String? label,
     String? tintColor,
+    String? soundPath,
   }) {
     throw UnimplementedError(
       'scheduleRecurrentAlarm() has not been implemented.',

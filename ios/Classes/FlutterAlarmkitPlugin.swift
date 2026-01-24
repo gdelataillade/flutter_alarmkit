@@ -1,11 +1,18 @@
 import Flutter
+import ActivityKit
 import UIKit
 import AlarmKit
 import SwiftUI
 
 @available(iOS 26.0, *)
 public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
+  // Store the registrar as a static property
+  private static var registrar: FlutterPluginRegistrar?
+  
   public static func register(with registrar: FlutterPluginRegistrar) {
+    // Store the registrar for asset lookup
+    self.registrar = registrar
+    
     let channel = FlutterMethodChannel(
       name: "flutter_alarmkit",
       binaryMessenger: registrar.messenger()
@@ -167,6 +174,77 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     return Color(uiColor: defaultTint)
   }
 
+  private func parseSoundPath(from args: [String: Any]) -> String? {
+    return args["soundPath"] as? String
+  }
+
+  private func resolveSoundAsset(_ assetPath: String?) -> AlertConfiguration.AlertSound {
+    guard let assetPath = assetPath, !assetPath.isEmpty else {
+      return .default
+    }
+    
+    NSLog("🔊 resolveSoundAsset called with assetPath: \(assetPath)")
+
+    // 1. Get the filename from the asset path (e.g., "assets/marimba.caf" -> "marimba.caf")
+    let fileName = URL(fileURLWithPath: assetPath).lastPathComponent
+    
+    // 2. Define the target URL in Library/Sounds
+    let fileManager = FileManager.default
+    guard let libraryUrl = fileManager.urls(for: .libraryDirectory, in: .userDomainMask).first else {
+        NSLog("❌ ERROR: Could not find Library directory")
+        return .default
+    }
+    let soundsUrl = libraryUrl.appendingPathComponent("Sounds")
+    let destinationUrl = soundsUrl.appendingPathComponent(fileName)
+
+    // 3. Copy the file if it's not already there
+    if !fileManager.fileExists(atPath: destinationUrl.path) {
+        // Check if registrar is initialized
+        if FlutterAlarmkitPlugin.registrar == nil {
+            NSLog("❌ ERROR: FlutterAlarmkitPlugin.registrar is nil!")
+            return .default
+        }
+
+        // Look up the actual path in the Flutter assets
+        guard let key = FlutterAlarmkitPlugin.registrar?.lookupKey(forAsset: assetPath),
+              let sourcePath = Bundle.main.path(forResource: key, ofType: nil) else {
+            NSLog("❌ Could not find asset '\(assetPath)' in bundle")
+            return .default
+        }
+        
+        do {
+            // Create Library/Sounds directory if needed
+            try fileManager.createDirectory(at: soundsUrl, withIntermediateDirectories: true)
+            
+            // Copy the file
+            try fileManager.copyItem(at: URL(fileURLWithPath: sourcePath), to: destinationUrl)
+            NSLog("✅ Copied sound to Library/Sounds: \(destinationUrl.path)")
+        } catch {
+            NSLog("❌ Failed to copy sound: \(error)")
+            return .default
+      }
+    } else {
+        NSLog("✅ Sound already exists in Library/Sounds: \(destinationUrl.path)")
+    }
+
+    // 4. Return just the filename. 
+    // The system automatically looks in the main bundle and Library/Sounds.
+    NSLog("📦 Returning .named(\(fileName))")
+    return .named(fileName)
+  }
+
+  private func decodeWeekdays(from mask: Int) -> [Locale.Weekday] {
+    var weekdays: [Locale.Weekday] = []
+    if mask & (1 << 0) != 0 { weekdays.append(.monday) }
+    if mask & (1 << 1) != 0 { weekdays.append(.tuesday) }
+    if mask & (1 << 2) != 0 { weekdays.append(.wednesday) }
+    if mask & (1 << 3) != 0 { weekdays.append(.thursday) }
+    if mask & (1 << 4) != 0 { weekdays.append(.friday) }
+    if mask & (1 << 5) != 0 { weekdays.append(.saturday) }
+    if mask & (1 << 6) != 0 { weekdays.append(.sunday) }
+    return weekdays
+  }
+
   // MARK: - Manage alarms methods
 
   private func scheduleOneShotAlarm(
@@ -199,9 +277,11 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
       tintColor: tintColor
     )
 
+    let soundPath = parseSoundPath(from: args)
     let alarmConfiguration = AlarmManager.AlarmConfiguration<NeverMetadata>(
         schedule: .fixed(date),
-        attributes: attributes
+        attributes: attributes,
+        sound: resolveSoundAsset(soundPath),
     )
 
     // 7. Schedule and return the UUID string
@@ -263,10 +343,12 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
       presentation: presentation,
       tintColor: tintColor
     )
+    let soundPath = parseSoundPath(from: args)
     let alarmConfiguration = AlarmManager
       .AlarmConfiguration<NeverMetadata>(
         countdownDuration: countdownDuration,
-        attributes: attributes
+        attributes: attributes,
+        sound: resolveSoundAsset(soundPath),
       )
 
     // 7. Schedule and return the UUID string
@@ -302,14 +384,7 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     else { return }
 
     // 3. Decode bitmask into weekdays
-    var weekdays: [Locale.Weekday] = []
-    if mask & (1 << 0) != 0 { weekdays.append(.monday) }
-    if mask & (1 << 1) != 0 { weekdays.append(.tuesday) }
-    if mask & (1 << 2) != 0 { weekdays.append(.wednesday) }
-    if mask & (1 << 3) != 0 { weekdays.append(.thursday) }
-    if mask & (1 << 4) != 0 { weekdays.append(.friday) }
-    if mask & (1 << 5) != 0 { weekdays.append(.saturday) }
-    if mask & (1 << 6) != 0 { weekdays.append(.sunday) }
+    let weekdays = decodeWeekdays(from: mask)
 
     // 4. Build the weekly schedule
     let time = Alarm.Schedule.Relative.Time(hour: hour, minute: minute)
@@ -335,10 +410,12 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     )
 
     // 6. Configure and schedule
+    let soundPath = parseSoundPath(from: args)
     let config = AlarmManager
       .AlarmConfiguration<NeverMetadata>(
         schedule: .relative(schedule),
-        attributes: attributes
+        attributes: attributes,
+        sound: resolveSoundAsset(soundPath),
       )
 
     do {
@@ -473,3 +550,4 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     }
   }
 }
+

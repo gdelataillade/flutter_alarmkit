@@ -16,11 +16,13 @@ class AlarmRepositoryImpl implements AlarmRepository {
     required DateTime timestamp,
     required String label,
     required String tintColor,
+    String? soundPath,
   }) async {
     return await _plugin.scheduleOneShotAlarm(
       timestamp: timestamp.millisecondsSinceEpoch.toDouble(),
       label: label,
       tintColor: tintColor,
+      soundPath: soundPath,
     );
   }
 
@@ -30,12 +32,14 @@ class AlarmRepositoryImpl implements AlarmRepository {
     required int repeatDurationInSeconds,
     required String label,
     required String tintColor,
+    String? soundPath,
   }) async {
     return await _plugin.setCountdownAlarm(
       countdownDurationInSeconds: countdownDurationInSeconds,
       repeatDurationInSeconds: repeatDurationInSeconds,
       label: label,
       tintColor: tintColor,
+      soundPath: soundPath,
     );
   }
 
@@ -46,6 +50,7 @@ class AlarmRepositoryImpl implements AlarmRepository {
     required int minute,
     required String label,
     required String tintColor,
+    String? soundPath,
   }) async {
     return await _plugin.scheduleRecurrentAlarm(
       weekdays: weekdays,
@@ -53,6 +58,7 @@ class AlarmRepositoryImpl implements AlarmRepository {
       minute: minute,
       label: label,
       tintColor: tintColor,
+      soundPath: soundPath,
     );
   }
 

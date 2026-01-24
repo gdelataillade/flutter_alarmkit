@@ -16,14 +16,50 @@ flutter pub add flutter_alarmkit
 
 ### 2. Configure Info.plist
 
-Open `ios/Runner/Info.plist` and add the following:
+Open `ios/Runner/Info.plist` and add the following keys inside the `<dict>` element:
 
 ```xml
-<key>NSSupportsLiveActivities</key>
-<true/>
+<!-- Required: AlarmKit usage description -->
 <key>NSAlarmKitUsageDescription</key>
 <string>This app uses alarms to notify you even when your device is locked.</string>
+
+<!-- Required: Enable Live Activities -->
+<key>NSSupportsLiveActivities</key>
+<true/>
+
+<!-- Required for AlarmKit local network communication -->
+<key>NSBonjourServices</key>
+<array>
+    <string>_alarmkit._tcp</string>
+</array>
+<key>NSLocalNetworkUsageDescription</key>
+<string>This app needs access to the local network to discover and connect to alarm devices.</string>
+
+<!-- Required for iOS 26 scene-based lifecycle -->
+<key>UIApplicationSceneManifest</key>
+<dict>
+    <key>UIApplicationSupportsMultipleScenes</key>
+    <false/>
+    <key>UISceneConfigurations</key>
+    <dict>
+        <key>UIWindowSceneSessionRoleApplication</key>
+        <array>
+            <dict>
+                <key>UISceneClassName</key>
+                <string>UIWindowScene</string>
+                <key>UISceneConfigurationName</key>
+                <string>flutter</string>
+                <key>UISceneDelegateClassName</key>
+                <string>FlutterSceneDelegate</string>
+                <key>UISceneStoryboardFile</key>
+                <string>Main</string>
+            </dict>
+        </array>
+    </dict>
+</dict>
 ```
+
+See the full example: [Info.plist](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/Runner/Info.plist)
 
 ---
 
@@ -71,7 +107,32 @@ end
 
 Here's example app's [Podfile](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/Podfile).
 
-### 6. Reorder build phases
+### 6. Update AppDelegate.swift
+
+Open `ios/Runner/AppDelegate.swift` and update it to implement `FlutterImplicitEngineDelegate`. This is required for iOS 26 to properly register plugins when the app is launched implicitly by the system (e.g., when an alarm fires):
+
+```swift
+import Flutter
+import UIKit
+
+@main
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
+  override func application(
+    _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+  ) -> Bool {
+    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+  }
+}
+```
+
+---
+
+### 7. Reorder build phases (might not be needed)
 
 In Xcode:
 - Select the **Runner** target
@@ -79,7 +140,7 @@ In Xcode:
 - `[CP] Embed Pods Frameworks` and `Embed Foundation Extensions` should be above `Thin Binary`.
 
 
-### 7. Build and Run
+### 8. Build and Run
 
 Then run:
 

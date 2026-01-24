@@ -34,6 +34,7 @@ class AlarmControls extends StatelessWidget {
                               ),
                               label: 'Test Alarm',
                               tintColor: '#00FF00',
+                              soundPath: 'assets/marimba.caf',
                             ),
                           );
                     }
@@ -50,6 +51,7 @@ class AlarmControls extends StatelessWidget {
                               repeatDurationInSeconds: 5,
                               label: 'Test Countdown Alarm',
                               tintColor: '#0000FF',
+                              soundPath: 'assets/marimba.caf',
                             ),
                           );
                     }

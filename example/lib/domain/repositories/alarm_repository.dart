@@ -7,6 +7,7 @@ abstract class AlarmRepository {
     required DateTime timestamp,
     required String label,
     required String tintColor,
+    String? soundPath,
   });
 
   Future<String> scheduleCountdownAlarm({
@@ -14,6 +15,7 @@ abstract class AlarmRepository {
     required int repeatDurationInSeconds,
     required String label,
     required String tintColor,
+    String? soundPath,
   });
 
   Future<String> scheduleRecurrentAlarm({
@@ -22,10 +24,13 @@ abstract class AlarmRepository {
     required int minute,
     required String label,
     required String tintColor,
+    String? soundPath,
   });
 
   Future<bool> cancelAlarm({required String alarmId});
 
+  /// Stops an active alarm.
+  /// Returns false if the alarm cannot be stopped (e.g. it doesn't exist).
   Future<bool> stopAlarm({required String alarmId});
 
   Future<String?> getPlatformVersion();

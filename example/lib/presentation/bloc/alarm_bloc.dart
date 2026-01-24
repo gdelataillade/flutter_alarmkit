@@ -18,15 +18,17 @@ class ScheduleOneShotAlarm extends AlarmEvent {
   final DateTime timestamp;
   final String label;
   final String tintColor;
+  final String? soundPath;
 
   const ScheduleOneShotAlarm({
     required this.timestamp,
     required this.label,
     required this.tintColor,
+    this.soundPath,
   });
 
   @override
-  List<Object?> get props => [timestamp, label, tintColor];
+  List<Object?> get props => [timestamp, label, tintColor, soundPath];
 }
 
 class ScheduleCountdownAlarm extends AlarmEvent {
@@ -34,12 +36,14 @@ class ScheduleCountdownAlarm extends AlarmEvent {
   final int repeatDurationInSeconds;
   final String label;
   final String tintColor;
+  final String? soundPath;
 
   const ScheduleCountdownAlarm({
     required this.countdownDurationInSeconds,
     required this.repeatDurationInSeconds,
     required this.label,
     required this.tintColor,
+    this.soundPath,
   });
 
   @override
@@ -48,6 +52,7 @@ class ScheduleCountdownAlarm extends AlarmEvent {
         repeatDurationInSeconds,
         label,
         tintColor,
+        soundPath,
       ];
 }
 
@@ -172,6 +177,7 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
         timestamp: event.timestamp,
         label: event.label,
         tintColor: event.tintColor,
+        soundPath: event.soundPath,
       );
 
       emit(state.copyWith(
@@ -221,6 +227,7 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
         repeatDurationInSeconds: event.repeatDurationInSeconds,
         label: event.label,
         tintColor: event.tintColor,
+        soundPath: event.soundPath,
       );
 
       emit(state.copyWith(

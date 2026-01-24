@@ -3,8 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/alarm_bloc.dart';
 import 'status_container.dart';
 
-class AuthSection extends StatelessWidget {
-  const AuthSection({super.key});
+class Permissions extends StatelessWidget {
+  const Permissions({super.key});
 
   @override
   Widget build(BuildContext context) {

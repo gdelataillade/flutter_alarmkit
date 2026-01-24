@@ -66,12 +66,14 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
     required double timestamp,
     String? label,
     String? tintColor,
+    String? soundPath,
   }) async {
     try {
       final args = {
         'timestamp': timestamp,
         if (label != null) 'label': label,
         if (tintColor != null) 'tintColor': tintColor,
+        if (soundPath != null) 'soundPath': soundPath,
       };
 
       final alarmId = await methodChannel.invokeMethod<String>(
@@ -79,7 +81,11 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
         args,
       );
 
-      if (alarmId == null) {
+      if (alarmId != null) {
+        debugPrint(
+          '[FlutterAlarmkit] One shot alarm $alarmId was scheduled successfully',
+        );
+      } else {
         throw PlatformException(
           code: 'UNKNOWN_ERROR',
           message: 'Failed to schedule alarm: null result',
@@ -104,6 +110,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
     required int repeatDurationInSeconds,
     String? label,
     String? tintColor,
+    String? soundPath,
   }) async {
     try {
       final args = {
@@ -111,6 +118,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
         'repeatDurationInSeconds': repeatDurationInSeconds,
         if (label != null) 'label': label,
         if (tintColor != null) 'tintColor': tintColor,
+        if (soundPath != null) 'soundPath': soundPath,
       };
 
       final alarmId = await methodChannel.invokeMethod<String>(
@@ -118,7 +126,11 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
         args,
       );
 
-      if (alarmId == null) {
+      if (alarmId != null) {
+        debugPrint(
+          '[FlutterAlarmkit] Countdown alarm $alarmId was scheduled successfully',
+        );
+      } else {
         throw PlatformException(
           code: 'UNKNOWN_ERROR',
           message: 'Failed to schedule alarm: null result',
@@ -144,6 +156,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
     required int minute,
     String? label,
     String? tintColor,
+    String? soundPath,
   }) async {
     try {
       final args = <String, dynamic>{
@@ -152,6 +165,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
         'minute': minute,
         if (label != null) 'label': label,
         if (tintColor != null) 'tintColor': tintColor,
+        if (soundPath != null) 'soundPath': soundPath,
       };
 
       final alarmId = await methodChannel.invokeMethod<String>(
@@ -159,10 +173,14 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
         args,
       );
 
-      if (alarmId == null) {
+      if (alarmId != null) {
+        debugPrint(
+          '[FlutterAlarmkit] Recurrent alarm $alarmId was scheduled successfully',
+        );
+      } else {
         throw PlatformException(
           code: 'UNKNOWN_ERROR',
-          message: 'Failed to schedule recurrent alarm: null result',
+          message: 'Failed to schedule alarm: null result',
         );
       }
 
@@ -188,34 +206,84 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
 
   @override
   Future<bool> pauseAlarm({required String alarmId}) async {
-    return await methodChannel.invokeMethod<bool>('pauseAlarm', alarmId) ??
-        false;
+    try {
+      return await methodChannel.invokeMethod<bool>('pauseAlarm', alarmId) ??
+          false;
+    } on PlatformException catch (e) {
+      debugPrint(
+        '[FlutterAlarmkit] Failed to pause alarm $alarmId: ${e.message}',
+      );
+      return false;
+    }
   }
 
   @override
   Future<bool> resumeAlarm({required String alarmId}) async {
-    return await methodChannel.invokeMethod<bool>('resumeAlarm', alarmId) ??
-        false;
+    try {
+      return await methodChannel.invokeMethod<bool>('resumeAlarm', alarmId) ??
+          false;
+    } on PlatformException catch (e) {
+      debugPrint(
+        '[FlutterAlarmkit] Failed to resume alarm $alarmId: ${e.message}',
+      );
+      return false;
+    }
   }
 
   @override
   Future<bool> countdownAlarm({required String alarmId}) async {
-    return await methodChannel.invokeMethod<bool>('countdownAlarm', alarmId) ??
-        false;
+    try {
+      return await methodChannel.invokeMethod<bool>(
+            'countdownAlarm',
+            alarmId,
+          ) ??
+          false;
+    } on PlatformException catch (e) {
+      debugPrint(
+        '[FlutterAlarmkit] Failed to countdown alarm $alarmId: ${e.message}',
+      );
+      return false;
+    }
   }
 
   @override
   Future<bool> cancelAlarm({required String alarmId}) async {
-    return await methodChannel.invokeMethod<bool>('cancelAlarm', alarmId) ??
-        false;
+    try {
+      final result =
+          await methodChannel.invokeMethod<bool>('cancelAlarm', alarmId) ??
+          false;
+
+      debugPrint(
+        '[FlutterAlarmkit] Alarm $alarmId was cancelled successfully',
+      );
+
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint(
+        '[FlutterAlarmkit] Failed to cancel alarm $alarmId: ${e.message}',
+      );
+      return false;
+    }
   }
 
   @override
   Future<bool> stopAlarm({required String alarmId}) async {
-    final stopped = await methodChannel.invokeMethod<bool>(
-      'stopAlarm',
-      alarmId,
-    );
-    return stopped ?? false;
+    try {
+      final stopped =
+          await methodChannel.invokeMethod<bool>('stopAlarm', alarmId) ?? false;
+
+      if (stopped) {
+        debugPrint(
+          '[FlutterAlarmkit] Alarm $alarmId was stopped successfully',
+        );
+      }
+
+      return stopped;
+    } on PlatformException catch (e) {
+      debugPrint(
+        '[FlutterAlarmkit] Failed to stop alarm $alarmId: ${e.message}',
+      );
+      return false;
+    }
   }
 }

@@ -1,9 +1,8 @@
-import 'package:example/presentation/widgets/alarms_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/alarm_bloc.dart';
 import '../widgets/platform_info.dart';
-import '../widgets/auth_section.dart';
+import '../widgets/permissions.dart';
 import '../widgets/alarm_controls.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -34,11 +33,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   PlatformInfo(platformVersion: state.platformVersion),
                   const SizedBox(height: 20),
-                  const AuthSection(),
+                  const Permissions(),
                   const SizedBox(height: 40),
                   const AlarmControls(),
-                  const SizedBox(height: 40),
-                  const AlarmsList(),
                 ],
               ),
             ),

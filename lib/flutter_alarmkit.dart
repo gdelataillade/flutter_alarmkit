@@ -76,6 +76,24 @@ class FlutterAlarmkit {
   /// the alarm title, and the countdown
   /// - In the Dynamic Island, it's used for visual consistency
   ///
+  /// [soundPath] is an optional string specifying the path to a custom audio file
+  /// in your Flutter assets (e.g., "assets/sounds/alarm.caf").
+  ///
+  /// **Audio File Requirements:**
+  /// - **Formats**: The file must be in a format supported by iOS system sounds,
+  ///   such as `.caf` (Core Audio Format), `.aiff`, or `.wav`. MP3 is NOT supported
+  ///   for this purpose.
+  /// - **Duration**: The sound must be **under 30 seconds**. If it exceeds this
+  ///   limit, the system will play the default sound instead.
+  /// - **Asset Configuration**: Ensure the file is listed in your `pubspec.yaml`
+  ///   under `assets`.
+  ///
+  /// **How to convert MP3 to CAF:**
+  /// You can use `ffmpeg` or `afconvert` (built-in on macOS):
+  /// ```bash
+  /// afconvert -f caff -d LEI16 input.mp3 output.caf
+  /// ```
+  ///
   /// Returns a [Future<String>] that completes with the UUID of the scheduled
   /// alarm.
   ///
@@ -88,11 +106,13 @@ class FlutterAlarmkit {
     required double timestamp,
     String? label,
     String? tintColor,
+    String? soundPath,
   }) {
     return FlutterAlarmkitPlatform.instance.scheduleOneShotAlarm(
       timestamp: timestamp,
       label: label,
       tintColor: tintColor,
+      soundPath: soundPath,
     );
   }
 
@@ -110,17 +130,39 @@ class FlutterAlarmkit {
   /// the alarm title, and the countdown
   /// - In the Dynamic Island, it's used for visual consistency
   ///
+  /// [soundPath] is an optional string specifying the path to a custom audio file
+  /// in your Flutter assets (e.g., "assets/sounds/alarm.caf").
+  ///
+  /// **Audio File Requirements:**
+  /// - **Formats**: The file must be in a format supported by iOS system sounds,
+  ///   such as `.caf` (Core Audio Format), `.aiff`, or `.wav`. MP3 is NOT supported
+  ///   for this purpose.
+  /// - **Duration**: The sound must be **under 30 seconds**. If it exceeds this
+  ///   limit, the system will play the default sound instead.
+  /// - **Asset Configuration**: Ensure the file is listed in your `pubspec.yaml`
+  ///   under `assets`.
+  ///
+  /// **How to convert MP3 to CAF:**
+  /// You can use `ffmpeg` or `afconvert` (built-in on macOS):
+  /// ```bash
+  /// afconvert -f caff -d LEI16 input.mp3 output.caf
+  /// ```
+  ///
+  /// Returns a [Future<String>] that completes with the UUID of the scheduled
+  /// alarm.
   Future<String> setCountdownAlarm({
     required int countdownDurationInSeconds,
     required int repeatDurationInSeconds,
     String? label,
     String? tintColor,
+    String? soundPath,
   }) {
     return FlutterAlarmkitPlatform.instance.setCountdownAlarm(
       countdownDurationInSeconds: countdownDurationInSeconds,
       repeatDurationInSeconds: repeatDurationInSeconds,
       label: label,
       tintColor: tintColor,
+      soundPath: soundPath,
     );
   }
 
@@ -132,6 +174,24 @@ class FlutterAlarmkit {
   /// [label] is an optional string that will be displayed as the alarm title.
   /// [tintColor] is an optional string representing a color that helps users
   /// associate the alarm with your app.
+  ///
+  /// [soundPath] is an optional string specifying the path to a custom audio file
+  /// in your Flutter assets (e.g., "assets/sounds/alarm.caf").
+  ///
+  /// **Audio File Requirements:**
+  /// - **Formats**: The file must be in a format supported by iOS system sounds,
+  ///   such as `.caf` (Core Audio Format), `.aiff`, or `.wav`. MP3 is NOT supported
+  ///   for this purpose.
+  /// - **Duration**: The sound must be **under 30 seconds**. If it exceeds this
+  ///   limit, the system will play the default sound instead.
+  /// - **Asset Configuration**: Ensure the file is listed in your `pubspec.yaml`
+  ///   under `assets`.
+  ///
+  /// **How to convert MP3 to CAF:**
+  /// You can use `ffmpeg` or `afconvert` (built-in on macOS):
+  /// ```bash
+  /// afconvert -f caff -d LEI16 input.mp3 output.caf
+  /// ```
   ///
   /// Returns a [Future<String>] that completes with the UUID of the scheduled
   /// alarm.
@@ -147,6 +207,7 @@ class FlutterAlarmkit {
     required int minute,
     String? label,
     String? tintColor,
+    String? soundPath,
   }) {
     return FlutterAlarmkitPlatform.instance.scheduleRecurrentAlarm(
       weekdayMask: Weekday.toBitmask(weekdays),
@@ -154,6 +215,7 @@ class FlutterAlarmkit {
       minute: minute,
       label: label,
       tintColor: tintColor,
+      soundPath: soundPath,
     );
   }
 
@@ -174,23 +236,9 @@ class FlutterAlarmkit {
   /// [alarmId] is the UUID of the alarm to cancel.
   ///
   /// Returns a [Future<bool>] that completes with `true` if the alarm was
-  /// canceled, `false` otherwise.
+  /// canceled, `false` otherwise (e.g. if the alarm doesn't exist).
   Future<bool> cancelAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.cancelAlarm(alarmId: alarmId);
-  }
-
-  /// Performs a countdown for the alarm with the specified ID if it's currently
-  /// alerting.
-  ///
-  /// The function throws otherwise. This is identical to the repeat function of
-  /// a timer, or the snooze function of an alarm.
-  ///
-  /// [alarmId] is the UUID of the alarm to countdown.
-  ///
-  /// Returns a [Future<bool>] that completes with `true` if the alarm was
-  /// countdown, `false` otherwise.
-  Future<bool> countdownAlarm({required String alarmId}) {
-    return FlutterAlarmkitPlatform.instance.countdownAlarm(alarmId: alarmId);
   }
 
   /// Pauses the alarm with the specified ID if it's in the countdown state.
@@ -198,7 +246,7 @@ class FlutterAlarmkit {
   /// [alarmId] is the UUID of the alarm to pause.
   ///
   /// Returns a [Future<bool>] that completes with `true` if the alarm was
-  /// paused, `false` otherwise.
+  /// paused, `false` otherwise (e.g. if the alarm doesn't exist).
   Future<bool> pauseAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.pauseAlarm(alarmId: alarmId);
   }
@@ -208,7 +256,7 @@ class FlutterAlarmkit {
   /// [alarmId] is the UUID of the alarm to resume.
   ///
   /// Returns a [Future<bool>] that completes with `true` if the alarm was
-  /// resumed, `false` otherwise.
+  /// resumed, `false` otherwise (e.g. if the alarm doesn't exist).
   Future<bool> resumeAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.resumeAlarm(alarmId: alarmId);
   }
@@ -221,7 +269,7 @@ class FlutterAlarmkit {
   /// [alarmId] is the UUID of the alarm to stop.
   ///
   /// Returns a [Future<bool>] that completes with `true` if the alarm was
-  /// stopped, `false` otherwise.
+  /// stopped, `false` otherwise (e.g. if the alarm doesn't exist).
   Future<bool> stopAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.stopAlarm(alarmId: alarmId);
   }
