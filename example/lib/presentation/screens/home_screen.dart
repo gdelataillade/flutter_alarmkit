@@ -22,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('AlarmKit Example 0.0.8')),
+      appBar: AppBar(title: const Text('AlarmKit Example 0.0.9')),
       body: BlocBuilder<AlarmBloc, AlarmState>(
         builder: (context, state) {
           return Center(

@@ -1,3 +1,6 @@
+## 0.0.9
+* Add support for custom alarm sound with `soundPath` parameter.
+
 ## 0.0.8
 * Add `alarmUpdates` method.
 
