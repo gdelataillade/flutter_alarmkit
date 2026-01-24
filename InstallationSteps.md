@@ -2,6 +2,8 @@
 
 Follow these steps to add `flutter_alarmkit` and set up a working Live Activity extension:
 
+> **Note:** This plugin is still under development (beta). Installation steps are likely to evolve as AlarmKit and Flutter’s iOS 26 support mature. If something doesn’t work as described, please [open an issue](https://github.com/gdelataillade/flutter_alarmkit/issues).
+
 ---
 
 ### 1. Add the dependency
