@@ -1,3 +1,6 @@
+## 0.0.10
+* Add `getAuthorizationState` method.
+
 ## 0.0.9
 * Add support for custom alarm sound with `soundPath` parameter.
 
