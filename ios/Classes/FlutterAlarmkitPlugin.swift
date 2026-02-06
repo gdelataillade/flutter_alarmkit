@@ -33,6 +33,9 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     case "requestAuthorization":
       Task { await self.requestAuthorization(result: result) }
 
+    case "getAuthorizationState":
+      Task { await self.getAuthorizationState(result: result) }
+
     case "scheduleOneShotAlarm":
       Task { await self.scheduleOneShotAlarm(call: call, result: result) }
 
@@ -102,6 +105,20 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
         message: "Failed to request alarm authorization: \(error)",
         details: nil
       ))
+    }
+  }
+
+  private func getAuthorizationState(result: @escaping FlutterResult) async {
+    let manager = AlarmManager.shared
+    switch manager.authorizationState {
+    case .notDetermined:
+      result(0)
+    case .denied:
+      result(2)
+    case .authorized:
+      result(3)
+    @unknown default:
+      result(0)
     }
   }
 
