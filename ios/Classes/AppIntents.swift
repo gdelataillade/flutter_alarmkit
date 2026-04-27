@@ -2,9 +2,22 @@ import AlarmKit
 import AppIntents
 
 @available(iOS 26.0, *)
+private enum AlarmIntentError: Error {
+    case invalidAlarmID
+}
+
+@available(iOS 26.0, *)
+private func parseAlarmUUID(_ alarmID: String) throws -> UUID {
+    guard let uuid = UUID(uuidString: alarmID) else {
+        throw AlarmIntentError.invalidAlarmID
+    }
+    return uuid
+}
+
+@available(iOS 26.0, *)
 struct PauseIntent: LiveActivityIntent {
     func perform() throws -> some IntentResult {
-        try AlarmManager.shared.pause(id: UUID(uuidString: alarmID)!)
+        try AlarmManager.shared.pause(id: parseAlarmUUID(alarmID))
         return .result()
     }
     
@@ -26,7 +39,7 @@ struct PauseIntent: LiveActivityIntent {
 @available(iOS 26.0, *)
 struct StopIntent: LiveActivityIntent {
     func perform() throws -> some IntentResult {
-        try AlarmManager.shared.stop(id: UUID(uuidString: alarmID)!)
+        try AlarmManager.shared.stop(id: parseAlarmUUID(alarmID))
         return .result()
     }
     
@@ -48,7 +61,7 @@ struct StopIntent: LiveActivityIntent {
 @available(iOS 26.0, *)
 struct RepeatIntent: LiveActivityIntent {
     func perform() throws -> some IntentResult {
-        try AlarmManager.shared.countdown(id: UUID(uuidString: alarmID)!)
+        try AlarmManager.shared.countdown(id: parseAlarmUUID(alarmID))
         return .result()
     }
     
@@ -70,7 +83,7 @@ struct RepeatIntent: LiveActivityIntent {
 @available(iOS 26.0, *)
 struct ResumeIntent: LiveActivityIntent {
     func perform() throws -> some IntentResult {
-        try AlarmManager.shared.resume(id: UUID(uuidString: alarmID)!)
+        try AlarmManager.shared.resume(id: parseAlarmUUID(alarmID))
         return .result()
     }
     
@@ -92,7 +105,7 @@ struct ResumeIntent: LiveActivityIntent {
 @available(iOS 26.0, *)
 struct OpenAlarmAppIntent: LiveActivityIntent {
     func perform() throws -> some IntentResult {
-        try AlarmManager.shared.stop(id: UUID(uuidString: alarmID)!)
+        try AlarmManager.shared.stop(id: parseAlarmUUID(alarmID))
         return .result()
     }
     

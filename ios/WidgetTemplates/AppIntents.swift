@@ -20,17 +20,17 @@ public struct PauseIntent: LiveActivityIntent {
         try AlarmManager.shared.pause(id: parseAlarmUUID(alarmID))
         return .result()
     }
-    
+
     public static var title: LocalizedStringResource = "Pause"
     public static var description = IntentDescription("Pause a countdown")
-    
+
     @Parameter(title: "alarmID")
     public var alarmID: String
-    
+
     public init(alarmID: String) {
         self.alarmID = alarmID
     }
-    
+
     public init() {
         self.alarmID = ""
     }
@@ -42,17 +42,17 @@ public struct StopIntent: LiveActivityIntent {
         try AlarmManager.shared.stop(id: parseAlarmUUID(alarmID))
         return .result()
     }
-    
+
     public static var title: LocalizedStringResource = "Stop"
     public static var description = IntentDescription("Stop an alert")
-    
+
     @Parameter(title: "alarmID")
     public var alarmID: String
-    
+
     public init(alarmID: String) {
         self.alarmID = alarmID
     }
-    
+
     public init() {
         self.alarmID = ""
     }
@@ -64,17 +64,17 @@ public struct RepeatIntent: LiveActivityIntent {
         try AlarmManager.shared.countdown(id: parseAlarmUUID(alarmID))
         return .result()
     }
-    
+
     public static var title: LocalizedStringResource = "Repeat"
     public static var description = IntentDescription("Repeat a countdown")
-    
+
     @Parameter(title: "alarmID")
     public var alarmID: String
-    
+
     public init(alarmID: String) {
         self.alarmID = alarmID
     }
-    
+
     public init() {
         self.alarmID = ""
     }
@@ -86,17 +86,17 @@ public struct ResumeIntent: LiveActivityIntent {
         try AlarmManager.shared.resume(id: parseAlarmUUID(alarmID))
         return .result()
     }
-    
+
     public static var title: LocalizedStringResource = "Resume"
     public static var description = IntentDescription("Resume a countdown")
-    
+
     @Parameter(title: "alarmID")
     public var alarmID: String
-    
+
     public init(alarmID: String) {
         self.alarmID = alarmID
     }
-    
+
     public init() {
         self.alarmID = ""
     }
@@ -108,18 +108,18 @@ public struct OpenAlarmAppIntent: LiveActivityIntent {
         try AlarmManager.shared.stop(id: parseAlarmUUID(alarmID))
         return .result()
     }
-    
+
     public static var title: LocalizedStringResource = "Open App"
-    public static var description = IntentDescription("Opens the Sample app")
+    public static var description = IntentDescription("Opens the app")
     public static var openAppWhenRun = true
-    
+
     @Parameter(title: "alarmID")
     public var alarmID: String
-    
+
     public init(alarmID: String) {
         self.alarmID = alarmID
     }
-    
+
     public init() {
         self.alarmID = ""
     }

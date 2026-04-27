@@ -2,13 +2,66 @@
 
 Follow these steps to add `flutter_alarmkit` and set up a working Live Activity extension:
 
-> **Note:** This plugin is still under development (beta). Installation steps are likely to evolve as AlarmKit and Flutter’s iOS 26 support mature. If something doesn’t work as described, please [open an issue](https://github.com/gdelataillade/flutter_alarmkit/issues).
+> **Note:** This plugin is still under development (beta). Installation steps are likely to evolve as AlarmKit and Flutter's iOS 26 support mature. If something doesn't work as described, please [open an issue](https://github.com/gdelataillade/flutter_alarmkit/issues).
 
 ---
 
+## Quick Setup (Recommended)
+
+Most installation steps can be automated with the setup CLI:
+
 ### 1. Add the dependency
 
-Run in your project root:
+```bash
+flutter pub add flutter_alarmkit
+```
+
+### 2. Run the setup command
+
+```bash
+dart run flutter_alarmkit:setup
+```
+
+This will automatically:
+- Patch `Info.plist` with required AlarmKit keys
+- Patch `AppDelegate.swift` with `FlutterImplicitEngineDelegate`
+- Patch `Podfile` with the widget extension target
+- Copy widget template files to `ios/AlarmkitWidget/`
+- Create `Runner.entitlements` with the App Group
+
+### 3. Add Widget Extension in Xcode
+
+In Xcode:
+1. **File** > **New** > **Target**
+2. Select **Widget Extension**
+3. Name it `AlarmkitWidget`
+4. Check only **Live Activity**
+5. Click **Finish**, then confirm by clicking **Activate** if prompted
+6. Delete the auto-generated Swift files in the AlarmkitWidget group
+7. Drag the files from `ios/AlarmkitWidget/` into the AlarmkitWidget group in Xcode
+
+### 4. Configure App Groups
+
+For **both** the Runner and AlarmkitWidgetExtension targets:
+1. Go to **Signing & Capabilities** > **+ Capability** > **App Groups**
+2. Add `group.flutter-alarmkit`
+
+This is required for custom button tint colors to work in the Live Activity.
+
+### 5. Build and Run
+
+```bash
+cd ios && pod install && cd ..
+flutter run --release
+```
+
+---
+
+## Manual Setup
+
+If you prefer to configure everything manually, follow these steps:
+
+### 1. Add the dependency
 
 ```bash
 flutter pub add flutter_alarmkit
@@ -134,7 +187,17 @@ import UIKit
 
 ---
 
-### 7. Reorder build phases (might not be needed)
+### 7. Configure App Groups
+
+For **both** the Runner and AlarmkitWidgetExtension targets:
+1. Go to **Signing & Capabilities** > **+ Capability** > **App Groups**
+2. Add `group.flutter-alarmkit`
+
+This enables the main app to pass custom button tint colors to the widget extension via shared `UserDefaults`.
+
+---
+
+### 8. Reorder build phases (might not be needed)
 
 In Xcode:
 - Select the **Runner** target
@@ -142,7 +205,7 @@ In Xcode:
 - `[CP] Embed Pods Frameworks` and `Embed Foundation Extensions` should be above `Thin Binary`.
 
 
-### 8. Build and Run
+### 9. Build and Run
 
 Then run:
 
