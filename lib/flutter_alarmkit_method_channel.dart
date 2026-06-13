@@ -34,13 +34,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
           false;
       return granted;
     } on PlatformException catch (e) {
-      if (e.code == 'UNSUPPORTED_VERSION') {
-        throw PlatformException(
-          code: 'UNSUPPORTED_VERSION',
-          message: 'AlarmKit is only available on iOS 26.0 and above',
-        );
-      }
-      rethrow;
+      _rethrowMapped(e);
     }
   }
 
@@ -51,13 +45,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
           await methodChannel.invokeMethod<int>('getAuthorizationState') ?? 0;
       return state;
     } on PlatformException catch (e) {
-      if (e.code == 'UNSUPPORTED_VERSION') {
-        throw PlatformException(
-          code: 'UNSUPPORTED_VERSION',
-          message: 'AlarmKit is only available on iOS 26.0 and above',
-        );
-      }
-      rethrow;
+      _rethrowMapped(e);
     }
   }
 
@@ -96,13 +84,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
 
       return alarmId;
     } on PlatformException catch (e) {
-      if (e.code == 'UNSUPPORTED_VERSION') {
-        throw PlatformException(
-          code: 'UNSUPPORTED_VERSION',
-          message: 'AlarmKit is only available on iOS 26.0 and above',
-        );
-      }
-      rethrow;
+      _rethrowMapped(e);
     }
   }
 
@@ -143,13 +125,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
 
       return alarmId;
     } on PlatformException catch (e) {
-      if (e.code == 'UNSUPPORTED_VERSION') {
-        throw PlatformException(
-          code: 'UNSUPPORTED_VERSION',
-          message: 'AlarmKit is only available on iOS 26.0 and above',
-        );
-      }
-      rethrow;
+      _rethrowMapped(e);
     }
   }
 
@@ -192,13 +168,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
 
       return alarmId;
     } on PlatformException catch (e) {
-      if (e.code == 'UNSUPPORTED_VERSION') {
-        throw PlatformException(
-          code: 'UNSUPPORTED_VERSION',
-          message: 'AlarmKit is only available on iOS 26.0 and above',
-        );
-      }
-      rethrow;
+      _rethrowMapped(e);
     }
   }
 
@@ -217,7 +187,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
           false;
     } on PlatformException catch (e) {
       debugPrint(
-        '[FlutterAlarmkit] Failed to pause alarm $alarmId: ${e.message}',
+        '[FlutterAlarmkit] Failed to pause alarm $alarmId: [${e.code}] ${e.message}',
       );
       return false;
     }
@@ -230,7 +200,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
           false;
     } on PlatformException catch (e) {
       debugPrint(
-        '[FlutterAlarmkit] Failed to resume alarm $alarmId: ${e.message}',
+        '[FlutterAlarmkit] Failed to resume alarm $alarmId: [${e.code}] ${e.message}',
       );
       return false;
     }
@@ -246,7 +216,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
           false;
     } on PlatformException catch (e) {
       debugPrint(
-        '[FlutterAlarmkit] Failed to countdown alarm $alarmId: ${e.message}',
+        '[FlutterAlarmkit] Failed to countdown alarm $alarmId: [${e.code}] ${e.message}',
       );
       return false;
     }
@@ -266,7 +236,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
       return result;
     } on PlatformException catch (e) {
       debugPrint(
-        '[FlutterAlarmkit] Failed to cancel alarm $alarmId: ${e.message}',
+        '[FlutterAlarmkit] Failed to cancel alarm $alarmId: [${e.code}] ${e.message}',
       );
       return false;
     }
@@ -287,9 +257,23 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
       return stopped;
     } on PlatformException catch (e) {
       debugPrint(
-        '[FlutterAlarmkit] Failed to stop alarm $alarmId: ${e.message}',
+        '[FlutterAlarmkit] Failed to stop alarm $alarmId: [${e.code}] ${e.message}',
       );
       return false;
     }
+  }
+
+  /// Re-throws [e], replacing the iOS-version error with a clearer message
+  /// while preserving the original details and stack trace.
+  Never _rethrowMapped(PlatformException e) {
+    if (e.code == 'UNSUPPORTED_VERSION') {
+      throw PlatformException(
+        code: e.code,
+        message: 'AlarmKit is only available on iOS 26.0 and above',
+        details: e.details,
+        stacktrace: e.stacktrace,
+      );
+    }
+    throw e;
   }
 }

@@ -64,7 +64,7 @@ try {
 To listen to alarm updates (when alarms are added, updated, or removed):
 
 ```dart
-final stream = FlutterAlarmkit.alarmUpdates();
+final stream = FlutterAlarmkit().alarmUpdates();
 
 stream.listen((alarmUpdate) {
   print('Alarm updated: $alarmUpdate');

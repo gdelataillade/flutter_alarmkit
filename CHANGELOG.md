@@ -3,6 +3,12 @@
 * Add `dart run flutter_alarmkit:setup` CLI: automated iOS project configuration, self-healing widget file sync, and a `--doctor` mode that verifies every installation step.
 * Fix installation on Xcode 16.3+/26: the CLI repairs the CocoaPods-incompatible project format (`objectVersion` 70/77, CocoaPods #12840) and the build-phase order causing "Cycle inside Runner".
 * Rework `InstallationSteps.md`: corrected step order (Xcode target before setup), filesystem-synchronized folder instructions, and a verified Troubleshooting section.
+* Add a `flutter-alarmkit-setup` Claude Code skill that automates the install.
+* **Breaking:** `alarmUpdates()` is now an instance method (`FlutterAlarmkit().alarmUpdates()`), making the whole public API instance-based.
+* Expose `countdownAlarm()` on the public API (restarts an existing countdown alarm); previously it was reachable only through the platform interface.
+* Add value equality (`==`/`hashCode`/`toString`) to `AlarmUIConfig` and `AlarmButtonConfig`, document the `#RRGGBB` hex-color format, and validate that recurrent alarms specify at least one weekday.
+* Native hardening: reply to method calls on the platform thread, fix the alarm-updates stream handler (cancel on re-listen, no cross-thread shared state), and remove dead widget/extension code.
+* Setup-CLI robustness: Podfile/AppDelegate/entitlements patching now handles extra `do`/`end` blocks, trailing extensions, and self-closed `<array/>`; `--doctor` no longer fails on intentionally-customized widget files.
 
 ## 0.0.10
 * Add `getAuthorizationState` method.

@@ -25,7 +25,17 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     eventChannel.setStreamHandler(streamHandler)
   }
 
-  public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+  public func handle(_ call: FlutterMethodCall, result rawResult: @escaping FlutterResult) {
+    // Flutter requires channel replies on the platform (main) thread. The async
+    // helpers below resume on a background executor, so funnel every reply back
+    // to main before invoking the original callback.
+    let result: FlutterResult = { value in
+      if Thread.isMainThread {
+        rawResult(value)
+      } else {
+        DispatchQueue.main.async { rawResult(value) }
+      }
+    }
     switch call.method {
     case "getPlatformVersion":
       result("iOS " + UIDevice.current.systemVersion)
@@ -304,8 +314,6 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     guard let assetPath = assetPath, !assetPath.isEmpty else {
       return .default
     }
-    
-    NSLog("🔊 resolveSoundAsset called with assetPath: \(assetPath)")
 
     // 1. Get the filename from the asset path (e.g., "assets/marimba.caf" -> "marimba.caf")
     let fileName = URL(fileURLWithPath: assetPath).lastPathComponent
@@ -313,7 +321,7 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     // 2. Define the target URL in Library/Sounds
     let fileManager = FileManager.default
     guard let libraryUrl = fileManager.urls(for: .libraryDirectory, in: .userDomainMask).first else {
-        NSLog("❌ ERROR: Could not find Library directory")
+        NSLog("[flutter_alarmkit] Could not find Library directory; using default sound")
         return .default
     }
     let soundsUrl = libraryUrl.appendingPathComponent("Sounds")
@@ -323,35 +331,31 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     if !fileManager.fileExists(atPath: destinationUrl.path) {
         // Check if registrar is initialized
         if FlutterAlarmkitPlugin.registrar == nil {
-            NSLog("❌ ERROR: FlutterAlarmkitPlugin.registrar is nil!")
+            NSLog("[flutter_alarmkit] Plugin registrar unavailable; using default sound")
             return .default
         }
 
         // Look up the actual path in the Flutter assets
         guard let key = FlutterAlarmkitPlugin.registrar?.lookupKey(forAsset: assetPath),
               let sourcePath = Bundle.main.path(forResource: key, ofType: nil) else {
-            NSLog("❌ Could not find asset '\(assetPath)' in bundle")
+            NSLog("[flutter_alarmkit] Could not find sound asset '\(assetPath)' in bundle; using default sound")
             return .default
         }
-        
+
         do {
             // Create Library/Sounds directory if needed
             try fileManager.createDirectory(at: soundsUrl, withIntermediateDirectories: true)
-            
+
             // Copy the file
             try fileManager.copyItem(at: URL(fileURLWithPath: sourcePath), to: destinationUrl)
-            NSLog("✅ Copied sound to Library/Sounds: \(destinationUrl.path)")
         } catch {
-            NSLog("❌ Failed to copy sound: \(error)")
+            NSLog("[flutter_alarmkit] Failed to copy sound asset; using default sound: \(error)")
             return .default
       }
-    } else {
-        NSLog("✅ Sound already exists in Library/Sounds: \(destinationUrl.path)")
     }
 
-    // 4. Return just the filename. 
+    // 4. Return just the filename.
     // The system automatically looks in the main bundle and Library/Sounds.
-    NSLog("📦 Returning .named(\(fileName))")
     return .named(fileName)
   }
 

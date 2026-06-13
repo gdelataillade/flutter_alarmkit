@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_alarmkit/src/alarm_button_config.dart';
 
 /// UI customization for an alarm's Live Activity presentation.
@@ -23,6 +24,7 @@ import 'package:flutter_alarmkit/src/alarm_button_config.dart';
 ///   pausedTitle: 'Timer paused',
 /// )
 /// ```
+@immutable
 class AlarmUIConfig {
   /// Stop button shown in the alert state.
   ///
@@ -83,4 +85,25 @@ class AlarmUIConfig {
       if (pausedTitle != null) 'pausedTitle': pausedTitle,
     };
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AlarmUIConfig &&
+          other.stopButton == stopButton &&
+          other.pauseButton == pauseButton &&
+          other.resumeButton == resumeButton &&
+          other.repeatButton == repeatButton &&
+          other.countdownTitle == countdownTitle &&
+          other.pausedTitle == pausedTitle;
+
+  @override
+  int get hashCode => Object.hash(stopButton, pauseButton, resumeButton,
+      repeatButton, countdownTitle, pausedTitle);
+
+  @override
+  String toString() => 'AlarmUIConfig(stopButton: $stopButton, '
+      'pauseButton: $pauseButton, resumeButton: $resumeButton, '
+      'repeatButton: $repeatButton, countdownTitle: $countdownTitle, '
+      'pausedTitle: $pausedTitle)';
 }

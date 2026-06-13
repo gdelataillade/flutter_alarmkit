@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// Configuration for a single alarm button displayed in the Live Activity.
 ///
 /// Maps to AlarmKit's AlarmButton (text, textColor, systemImageName)
@@ -12,6 +14,7 @@
 ///   tintColor: '#FF0000',
 /// )
 /// ```
+@immutable
 class AlarmButtonConfig {
   /// The button label text (e.g., "Stop", "Pause", "Resume", "Repeat").
   final String text;
@@ -21,12 +24,20 @@ class AlarmButtonConfig {
   /// See https://developer.apple.com/sf-symbols/ for available icons.
   final String icon;
 
-  /// Hex color string for the button text color (e.g., "#FFFFFF").
+  /// Hex color string for the button text color.
+  ///
+  /// Must be in the form `#RRGGBB` (6 hex digits, the leading `#` is optional).
+  /// Shorthand (`#FFF`), alpha (`#RRGGBBAA`), and named colors are not
+  /// supported; invalid values are ignored and the default is used.
   ///
   /// If null, defaults to the system default for the button style.
   final String? textColor;
 
-  /// Hex color string for the button background/tint (e.g., "#FF0000").
+  /// Hex color string for the button background/tint.
+  ///
+  /// Must be in the form `#RRGGBB` (6 hex digits, the leading `#` is optional).
+  /// Shorthand (`#FFF`), alpha (`#RRGGBBAA`), and named colors are not
+  /// supported; invalid values are ignored and the default is used.
   ///
   /// This controls the `.tint()` modifier on the button view, separate from
   /// AlarmButton's textColor. If null, defaults to the standard tint for each
@@ -48,4 +59,20 @@ class AlarmButtonConfig {
         'textColor': textColor,
         'tintColor': tintColor,
       };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AlarmButtonConfig &&
+          other.text == text &&
+          other.icon == icon &&
+          other.textColor == textColor &&
+          other.tintColor == tintColor;
+
+  @override
+  int get hashCode => Object.hash(text, icon, textColor, tintColor);
+
+  @override
+  String toString() => 'AlarmButtonConfig(text: $text, icon: $icon, '
+      'textColor: $textColor, tintColor: $tintColor)';
 }
