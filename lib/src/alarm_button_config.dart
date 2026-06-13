@@ -33,6 +33,7 @@ class AlarmButtonConfig {
   /// button type (red for stop, orange for pause, green for resume).
   final String? tintColor;
 
+  /// Creates a button configuration with the given [text] and [icon].
   const AlarmButtonConfig({
     required this.text,
     required this.icon,

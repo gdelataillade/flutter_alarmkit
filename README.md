@@ -21,14 +21,20 @@ See more: https://developer.apple.com/documentation/alarmkit
 - Schedule recurrent alarms
 - Listen to alarm updates
 - Set custom alarm sounds
+- Customize the Live Activity UI (buttons, icons, colors, titles)
 - Cancel alarms
 - Stop alarms
 
-More customizations coming soon.
-
 ## Installation
 
-Please carefully follow the installation steps in [InstallationSteps.md](InstallationSteps.md).
+Please carefully follow the installation steps in [InstallationSteps.md](InstallationSteps.md). Most of it is automated:
+
+```bash
+dart run flutter_alarmkit:setup            # patches your iOS project
+dart run flutter_alarmkit:setup --doctor   # verifies every step
+```
+
+> **Note:** the plugin currently supports CocoaPods only. Flutter prints a warning that `flutter_alarmkit` does not support Swift Package Manager — that's expected (SPM support is on the roadmap), not a problem with your setup.
 
 ## Usage
 
@@ -40,7 +46,7 @@ Before scheduling any alarms, you need to request authorization from the user:
 import 'package:flutter_alarmkit/flutter_alarmkit.dart';
 
 try {
-  final isAuthorized = await FlutterAlarmkit.requestAuthorization();
+  final isAuthorized = await FlutterAlarmkit().requestAuthorization();
   if (isAuthorized) {
     print('Alarm authorization granted');
   } else {
@@ -70,8 +76,12 @@ To schedule a one-time alarm:
 
 ```dart
 try {
-  final alarmId = await FlutterAlarmkit.scheduleOneShotAlarm(
-    dateTime: DateTime.now().add(Duration(hours: 1)),
+  final alarmId = await FlutterAlarmkit().scheduleOneShotAlarm(
+    // timestamp is a Unix timestamp in milliseconds since epoch
+    timestamp: DateTime.now()
+        .add(const Duration(hours: 1))
+        .millisecondsSinceEpoch
+        .toDouble(),
     label: 'My Alarm',
   );
   print('Alarm scheduled with ID: $alarmId');
@@ -85,7 +95,7 @@ try {
 To schedule a countdown alarm:
 
 ```dart
-final alarmId = await FlutterAlarmkit.scheduleCountdownAlarm(
+final alarmId = await FlutterAlarmkit().setCountdownAlarm(
   countdownDurationInSeconds: 10, // Duration before the alarm triggers
   repeatDurationInSeconds: 5, // Duration between each repetition
   label: 'My Countdown Alarm',
@@ -98,7 +108,7 @@ final alarmId = await FlutterAlarmkit.scheduleCountdownAlarm(
 To schedule a recurrent alarm:
 
 ```dart
-final alarmId = await FlutterAlarmkit.scheduleRecurrentAlarm(
+final alarmId = await FlutterAlarmkit().scheduleRecurrentAlarm(
   weekdays: {Weekday.monday, Weekday.wednesday, Weekday.friday},
   hour: 10,
   minute: 0,
@@ -107,12 +117,38 @@ final alarmId = await FlutterAlarmkit.scheduleRecurrentAlarm(
 );
 ```
 
+### Customize the Live Activity UI
+
+All schedule methods accept an optional `uiConfig` to customize the Live Activity's buttons (text, SF Symbol icon, text color, tint color) and the countdown/paused titles:
+
+```dart
+final alarmId = await FlutterAlarmkit().setCountdownAlarm(
+  countdownDurationInSeconds: 60,
+  repeatDurationInSeconds: 10,
+  label: 'Tea timer',
+  uiConfig: const AlarmUIConfig(
+    stopButton: AlarmButtonConfig(
+      text: 'Done',
+      icon: 'checkmark.circle',
+      textColor: '#FFFFFF',
+      tintColor: '#FF3B30',
+    ),
+    pauseButton: AlarmButtonConfig(text: 'Hold', icon: 'pause.fill'),
+    resumeButton: AlarmButtonConfig(text: 'Go', icon: 'play.fill'),
+    countdownTitle: 'Steeping...',
+    pausedTitle: 'On hold',
+  ),
+);
+```
+
+Every field is optional — anything you leave null keeps the standard AlarmKit appearance. Custom tint colors require the App Group from the installation steps.
+
 ### Cancel an Alarm
 
 To cancel an alarm:
 
 ```dart
-await FlutterAlarmkit.cancelAlarm(alarmId: alarmId);
+await FlutterAlarmkit().cancelAlarm(alarmId: alarmId);
 ```
 
 ### Stop an Alarm
@@ -120,7 +156,7 @@ await FlutterAlarmkit.cancelAlarm(alarmId: alarmId);
 To stop an alarm:
 
 ```dart
-await FlutterAlarmkit.stopAlarm(alarmId: alarmId);
+await FlutterAlarmkit().stopAlarm(alarmId: alarmId);
 ```
 
 ## Contributing

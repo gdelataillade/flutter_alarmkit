@@ -1,4 +1,4 @@
-import 'alarm_button_config.dart';
+import 'package:flutter_alarmkit/src/alarm_button_config.dart';
 
 /// UI customization for an alarm's Live Activity presentation.
 ///
@@ -62,6 +62,7 @@ class AlarmUIConfig {
   /// If null, uses the alarm's main label.
   final String? pausedTitle;
 
+  /// Creates a UI configuration; all fields are optional.
   const AlarmUIConfig({
     this.stopButton,
     this.pauseButton,

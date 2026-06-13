@@ -1,14 +1,25 @@
 # Installation Guide
 
-Follow these steps to add `flutter_alarmkit` and set up a working Live Activity extension:
+Follow these steps to add `flutter_alarmkit` and set up a working Live Activity extension.
 
 > **Note:** This plugin is still under development (beta). Installation steps are likely to evolve as AlarmKit and Flutter's iOS 26 support mature. If something doesn't work as described, please [open an issue](https://github.com/gdelataillade/flutter_alarmkit/issues).
+
+## Names and versions that must match exactly
+
+These values are load-bearing — the plugin's code and setup tooling reference them literally:
+
+| What | Value | Why |
+|---|---|---|
+| Widget Extension name (in the Xcode wizard) | `AlarmkitWidget` | Xcode derives the target `AlarmkitWidgetExtension` and the folder `ios/AlarmkitWidget/` from it; the Podfile block and entitlements reference the derived name |
+| App Group | `group.flutter-alarmkit` | Hardcoded in the plugin's Swift code; used to pass custom button colors to the widget via shared `UserDefaults` |
+| Minimum runtime | iOS 26.0 device | AlarmKit is an iOS 26 framework (the app itself may target lower iOS versions and gate alarm features at runtime) |
+| Toolchain | Xcode 26+, CocoaPods | Swift Package Manager is not supported yet |
+
+Only two steps require the Xcode GUI (marked 🖐 below): creating the Widget Extension target and adding the App Groups capability. Everything else is automated by the setup CLI and verifiable with `dart run flutter_alarmkit:setup --doctor`.
 
 ---
 
 ## Quick Setup (Recommended)
-
-Most installation steps can be automated with the setup CLI:
 
 ### 1. Add the dependency
 
@@ -16,44 +27,63 @@ Most installation steps can be automated with the setup CLI:
 flutter pub add flutter_alarmkit
 ```
 
-### 2. Run the setup command
+### 2. Create the Widget Extension target — 🖐 requires Xcode GUI
+
+Open `ios/Runner.xcworkspace` in Xcode:
+
+1. **File** > **New** > **Target**
+2. Select **Widget Extension**
+3. Name it exactly `AlarmkitWidget`
+4. Check only **Live Activity** (uncheck any other options)
+5. Click **Finish**, then confirm by clicking **Activate** if prompted
+
+Don't worry about the Swift files Xcode generates (including extras like `AlarmkitWidgetControl.swift` or `AppIntent.swift` that some Xcode versions add anyway) — the next step replaces them with the plugin's files. With Xcode 16+ the target is a filesystem-synchronized folder, so files changed on disk appear in Xcode automatically; no dragging or manual file references are ever needed.
+
+### 3. Run the setup command
 
 ```bash
 dart run flutter_alarmkit:setup
 ```
 
-This will automatically:
-- Patch `Info.plist` with required AlarmKit keys
-- Patch `AppDelegate.swift` with `FlutterImplicitEngineDelegate`
-- Patch `Podfile` with the widget extension target
-- Copy widget template files to `ios/AlarmkitWidget/`
-- Create `Runner.entitlements` with the App Group
+This automatically:
 
-### 3. Add Widget Extension in Xcode
+- Patches `Info.plist` with the required AlarmKit keys
+- Patches `AppDelegate.swift` with `FlutterImplicitEngineDelegate`
+- Patches `Podfile` with the widget extension target
+- Writes the plugin's widget files into `ios/AlarmkitWidget/` (replacing Xcode's placeholders and removing its extra generated files)
+- Creates `Runner.entitlements` with the App Group
+- Downgrades the project format if Xcode upgraded it to one CocoaPods can't parse yet (`objectVersion` 70/77 → 60, [CocoaPods #12840](https://github.com/CocoaPods/CocoaPods/issues/12840))
+- Reorders the Runner build phases so the embed phases run before Flutter's `Thin Binary` (prevents the "Cycle inside Runner" build error)
 
-In Xcode:
-1. **File** > **New** > **Target**
-2. Select **Widget Extension**
-3. Name it `AlarmkitWidget`
-4. Check only **Live Activity**
-5. Click **Finish**, then confirm by clicking **Activate** if prompted
-6. Delete the auto-generated Swift files in the AlarmkitWidget group
-7. Drag the files from `ios/AlarmkitWidget/` into the AlarmkitWidget group in Xcode
+The command is idempotent and self-healing — re-run it any time something looks off. If you intentionally customized the widget Swift files, setup keeps your version and tells you; use `--force` to overwrite with the plugin templates.
 
-### 4. Configure App Groups
+> Ran setup *before* creating the Xcode target? No problem — Xcode overwrites the widget files when it creates the target; just run setup again.
+
+### 4. Configure App Groups — 🖐 requires Xcode GUI
 
 For **both** the Runner and AlarmkitWidgetExtension targets:
+
 1. Go to **Signing & Capabilities** > **+ Capability** > **App Groups**
 2. Add `group.flutter-alarmkit`
 
-This is required for custom button tint colors to work in the Live Activity.
+This is required for custom button tint colors to work in the Live Activity. Adding the capability also wires the entitlements files into the build settings automatically.
 
-### 5. Build and Run
+### 5. Verify (optional)
+
+```bash
+dart run flutter_alarmkit:setup --doctor
+```
+
+Runs a read-only check of every step above and prints pass/fail with the fix for anything broken. Useful before building, after Xcode updates, and when filing an issue (paste its output).
+
+### 6. Build and Run
 
 ```bash
 cd ios && pod install && cd ..
 flutter run --release
 ```
+
+If the build fails with `Cycle inside Runner`, run `dart run flutter_alarmkit:setup` once more (`pod install` can append a build phase in the wrong position on its first run), then build again.
 
 ---
 
@@ -118,27 +148,31 @@ See the full example: [Info.plist](https://github.com/gdelataillade/flutter_alar
 
 ---
 
-### 3. Add a Live Activity Widget Extension
+### 3. Add a Live Activity Widget Extension — 🖐 requires Xcode GUI
 
 In Xcode:
 1. **File** > **New** > **Target**
 2. Select **Widget Extension**
-3. Name it `AlarmkitWidget`
-4. Check only **Live Activity**
+3. Name it exactly `AlarmkitWidget`
+4. Check only **Live Activity** (uncheck any other options)
 5. Click **Finish**, then confirm by clicking **Activate** if prompted
+
+Some Xcode versions generate extra files anyway (`AlarmkitWidgetControl.swift`, `AppIntent.swift`) — delete those in the next step.
 
 ---
 
 ### 4. Add the Widget UI Code
 
-Replace the generated files with the following files provided by the plugin:
-- [`AlarmkitWidget.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/AlarmkitWidget/AlarmkitWidget.swift)
-- [`AlarmkitWidgetLiveActivity.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/AlarmkitWidget/AlarmkitWidgetLiveActivity.swift)
-- [`AlarmkitWidgetBundle.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/AlarmkitWidget/AlarmkitWidgetBundle.swift)
+Replace the content of the generated files in `ios/AlarmkitWidget/` **on disk** with the plugin's versions (the canonical sources live in the plugin repo under `ios/WidgetTemplates/`):
 
-Also add [`AppIntents.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/AlarmkitWidget/AppIntents.swift) to the same `AlarmkitWidget` folder.
+- [`AlarmkitWidget.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/ios/WidgetTemplates/AlarmkitWidget.swift)
+- [`AlarmkitWidgetLiveActivity.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/ios/WidgetTemplates/AlarmkitWidgetLiveActivity.swift)
+- [`AlarmkitWidgetBundle.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/ios/WidgetTemplates/AlarmkitWidgetBundle.swift)
+- [`AppIntents.swift`](https://github.com/gdelataillade/flutter_alarmkit/blob/main/ios/WidgetTemplates/AppIntents.swift) (new file)
 
-These files define how the alarm appears on the Lock Screen and Dynamic Island.
+Delete `AlarmkitWidgetControl.swift` and `AppIntent.swift` (singular) if Xcode generated them.
+
+With Xcode 16+ the extension folder is filesystem-synchronized: editing files on disk is enough, no dragging into the project or target-membership changes needed. These files define how the alarm appears on the Lock Screen and Dynamic Island.
 
 ---
 
@@ -160,7 +194,9 @@ target 'Runner' do
 end
 ```
 
-Here's example app's [Podfile](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/Podfile).
+Optional: `pod install` warns "Automatically assigning platform iOS 13.0" when the Podfile's `platform :ios` line is commented out. You can uncomment it and set the minimum iOS your app supports to silence the warning (AlarmKit features need an iOS 26 device at runtime either way).
+
+Here's the example app's [Podfile](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/Podfile).
 
 ### 6. Update AppDelegate.swift
 
@@ -187,27 +223,39 @@ import UIKit
 
 ---
 
-### 7. Configure App Groups
+### 7. Configure App Groups — 🖐 requires Xcode GUI
 
 For **both** the Runner and AlarmkitWidgetExtension targets:
 1. Go to **Signing & Capabilities** > **+ Capability** > **App Groups**
 2. Add `group.flutter-alarmkit`
 
-This enables the main app to pass custom button tint colors to the widget extension via shared `UserDefaults`.
+This enables the main app to pass custom button tint colors to the widget extension via shared `UserDefaults`. Adding the capability also wires the entitlements files into the build settings automatically — if a build complains about missing entitlements, check **Build Settings** > **Code Signing Entitlements** points at them.
 
 ---
 
-### 8. Reorder build phases (might not be needed)
+### 8. Fix the project format for CocoaPods
 
-In Xcode:
+Creating the widget target in Xcode 16.3+/26 silently upgrades `ios/Runner.xcodeproj/project.pbxproj` to a format released CocoaPods versions can't parse, and `pod install` fails with:
+
+```
+ArgumentError - [Xcodeproj] Unable to find compatibility version string for object version `70`.
+```
+
+Open `ios/Runner.xcodeproj/project.pbxproj` and change `objectVersion = 70;` (or `77`) to `objectVersion = 60;`. Xcode still opens the project fine, but may re-upgrade the value on a later save — repeat the edit if the error returns ([CocoaPods #12840](https://github.com/CocoaPods/CocoaPods/issues/12840)).
+
+---
+
+### 9. Reorder build phases (required with Xcode 16.3+/26)
+
+Xcode appends the extension's embed phase **after** Flutter's `Thin Binary` phase when it creates the widget target, which makes release builds fail with `Cycle inside Runner`. In Xcode:
+
 - Select the **Runner** target
 - Go to **Build Phases**
-- `[CP] Embed Pods Frameworks` and `Embed Foundation Extensions` should be above `Thin Binary`.
+- Drag `[CP] Embed Pods Frameworks` and `Embed Foundation Extensions` **above** `Thin Binary`
 
+(`[CP] Embed Pods Frameworks` only appears after the first `pod install`.)
 
-### 9. Build and Run
-
-Then run:
+### 10. Build and Run
 
 ```bash
 flutter clean
@@ -218,14 +266,43 @@ cd ..
 flutter run --release
 ```
 
+---
+
 ## Troubleshooting
 
-Open an issue if you encounter any problems. Please provide the following information:
+Every entry below is a real error hit during installation testing, with the verified fix. The fastest path for most of them is:
 
-- Flutter version
-- Xcode version
-- iOS version
-- Device model
-- Steps to reproduce the issue
-- Error messages
-- Any relevant logs
+```bash
+dart run flutter_alarmkit:setup --doctor   # tells you what's broken
+dart run flutter_alarmkit:setup            # fixes everything it can
+```
+
+**`pod install` fails with `Unable to find compatibility version string for object version '70'`**
+Xcode 16.3+/26 upgraded the project format when you added the widget target, and released CocoaPods versions can't read it yet ([CocoaPods #12840](https://github.com/CocoaPods/CocoaPods/issues/12840)). Run `dart run flutter_alarmkit:setup` (it patches `objectVersion` down automatically), then re-run `pod install`. Xcode may restore the new format after later saves — just re-run setup if the error returns.
+
+**Build fails with `Error (Xcode): Cycle inside Runner`**
+Xcode added the extension's embed phases after Flutter's `Thin Binary` phase. Run `dart run flutter_alarmkit:setup` (it reorders the phases automatically), then build again. Manual alternative: Runner target > Build Phases > drag `Embed Foundation Extensions` and `[CP] Embed Pods Frameworks` **above** `Thin Binary`.
+
+**The files in `ios/AlarmkitWidget/` look like Xcode sample code (emoji timer)**
+Creating the widget target overwrote the plugin's widget files with Xcode placeholders. Run `dart run flutter_alarmkit:setup` — it detects the placeholders and restores the plugin's files, and removes Xcode's extra `AlarmkitWidgetControl.swift` / `AppIntent.swift`.
+
+**`flutter run --release` says `Could not run build/ios/iphoneos/Runner.app`**
+Usually the iPhone is locked — unlock it and retry. (The underlying `devicectl` error, "device was not, or could not be, unlocked", is hidden by Flutter.)
+
+**Alarm fires but the Live Activity shows no custom colors/titles**
+Check that the `group.flutter-alarmkit` App Group is enabled on **both** the Runner and AlarmkitWidgetExtension targets — the configuration travels via shared `UserDefaults`. `dart run flutter_alarmkit:setup --doctor` checks both entitlements files.
+
+**Something else**
+[Open an issue](https://github.com/gdelataillade/flutter_alarmkit/issues) and include: Flutter/Xcode/iOS versions, device model, steps to reproduce, error messages, and the output of `dart run flutter_alarmkit:setup --doctor`.
+
+---
+
+## Notes for AI agents
+
+If you are an AI assistant setting this plugin up in a user's app:
+
+- **Mental model:** `dart run flutter_alarmkit:setup` patches all config files, syncs the widget Swift files, and repairs known Xcode/CocoaPods breakage. It is idempotent — when in doubt, run it again. Verify state with `dart run flutter_alarmkit:setup --doctor` instead of inspecting Xcode.
+- **Only two steps need a human in the Xcode GUI:** creating the `AlarmkitWidget` Widget Extension target (step 2) and adding the App Groups capability to both targets (step 4). Stop and hand off for those; do not attempt to create targets or add capabilities by editing `project.pbxproj`.
+- **Never hand-write the widget Swift files** — they must match the plugin's `ios/WidgetTemplates/`; the setup command syncs them.
+- The only `project.pbxproj` edits that are safe to script are the two the setup command already performs (`objectVersion` downgrade, build-phase reorder).
+- Errors you may see and their one-command fix are in the Troubleshooting section above; match on the quoted error strings.

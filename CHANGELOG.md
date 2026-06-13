@@ -1,3 +1,9 @@
+## 0.0.11
+* Add Live Activity UI customization via `AlarmUIConfig` / `AlarmButtonConfig`: custom stop/pause/resume/repeat buttons (text, SF Symbol, text color, tint color) and countdown/paused titles on all schedule methods.
+* Add `dart run flutter_alarmkit:setup` CLI: automated iOS project configuration, self-healing widget file sync, and a `--doctor` mode that verifies every installation step.
+* Fix installation on Xcode 16.3+/26: the CLI repairs the CocoaPods-incompatible project format (`objectVersion` 70/77, CocoaPods #12840) and the build-phase order causing "Cycle inside Runner".
+* Rework `InstallationSteps.md`: corrected step order (Xcode target before setup), filesystem-synchronized folder instructions, and a verified Troubleshooting section.
+
 ## 0.0.10
 * Add `getAuthorizationState` method.
 
