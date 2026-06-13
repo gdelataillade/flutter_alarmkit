@@ -4,6 +4,20 @@ Follow these steps to add `flutter_alarmkit` and set up a working Live Activity 
 
 > **Note:** This plugin is still under development (beta). Installation steps are likely to evolve as AlarmKit and Flutter's iOS 26 support mature. If something doesn't work as described, please [open an issue](https://github.com/gdelataillade/flutter_alarmkit/issues).
 
+## Using with Claude Code (optional)
+
+This repo includes a Claude Code skill, **`flutter-alarmkit-setup`**, that automates the steps below: it runs the setup CLI, verifies the result, and tells you exactly when to do the two Xcode-GUI steps by hand. Copy the skill folder into your app once:
+
+```bash
+# from your Flutter app root
+mkdir -p .claude/skills
+git clone --depth 1 https://github.com/gdelataillade/flutter_alarmkit /tmp/flutter_alarmkit-skill
+cp -R /tmp/flutter_alarmkit-skill/.claude/skills/flutter-alarmkit-setup .claude/skills/
+rm -rf /tmp/flutter_alarmkit-skill
+```
+
+(If you already use a git or path dependency, copy `.claude/skills/flutter-alarmkit-setup/` straight from that checkout. Note it isn't inside the pub.dev package — pub omits dotfiles — so grab it from the repo.) Then open Claude Code in your project and say something like *"set up flutter_alarmkit"* — the skill takes it from there. The manual steps below remain the source of truth if you'd rather do it yourself.
+
 ## Names and versions that must match exactly
 
 These values are load-bearing — the plugin's code and setup tooling reference them literally:
