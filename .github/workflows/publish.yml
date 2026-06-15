@@ -21,6 +21,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Sets up Dart AND configures the temporary pub.dev OIDC credential. This
+      # step is what authenticates the publish — without it, `dart pub publish`
+      # falls back to an interactive Google login that cannot run in CI.
+      - name: Set up Dart (configures pub.dev OIDC credentials)
+        uses: dart-lang/setup-dart@v1
+
+      # Flutter SDK, needed so `dart pub publish` can resolve this plugin's
+      # `flutter:` SDK dependency. Set up after Dart so Flutter's bundled `dart`
+      # is the one on PATH while setup-dart's credential remains in place.
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
