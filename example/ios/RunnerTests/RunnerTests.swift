@@ -11,8 +11,14 @@ import XCTest
 
 class RunnerTests: XCTestCase {
 
-  func testGetPlatformVersion() {
-    let plugin = FlutterAlarmkitPlugin()
+  func testGetPlatformVersion() throws {
+    // The real implementation requires iOS 26; on older hosts the public
+    // FlutterAlarmkitPlugin shell only exposes static registration, so there is
+    // nothing to exercise here.
+    guard #available(iOS 26.0, *) else {
+      throw XCTSkip("AlarmKit requires iOS 26.0 or later")
+    }
+    let plugin = AlarmkitPluginImpl()
 
     let call = FlutterMethodCall(methodName: "getPlatformVersion", arguments: [])
 

@@ -4,8 +4,38 @@ import UIKit
 import AlarmKit
 import SwiftUI
 
-@available(iOS 26.0, *)
+/// Public registration entry point, callable on any iOS version.
+///
+/// The generated plugin registrant invokes `register(with:)` unconditionally,
+/// so this shell must NOT be `@available`-gated — otherwise the call traps on
+/// devices below the deployment floor. AlarmKit and the real implementation
+/// (`AlarmkitPluginImpl`) require iOS 26, so on older systems we register a
+/// method-call handler that fails every call with a clear `UNSUPPORTED_VERSION`
+/// error instead of touching an unavailable symbol.
 public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
+  public static func register(with registrar: FlutterPluginRegistrar) {
+    if #available(iOS 26.0, *) {
+      AlarmkitPluginImpl.register(with: registrar)
+    } else {
+      let channel = FlutterMethodChannel(
+        name: "flutter_alarmkit",
+        binaryMessenger: registrar.messenger()
+      )
+      channel.setMethodCallHandler { _, result in
+        result(
+          FlutterError(
+            code: "UNSUPPORTED_VERSION",
+            message: "AlarmKit is only available on iOS 26.0 and above",
+            details: nil
+          )
+        )
+      }
+    }
+  }
+}
+
+@available(iOS 26.0, *)
+public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
   // Store the registrar as a static property
   private static var registrar: FlutterPluginRegistrar?
   
@@ -17,7 +47,7 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
       name: "flutter_alarmkit",
       binaryMessenger: registrar.messenger()
     )
-    let instance = FlutterAlarmkitPlugin()
+    let instance = AlarmkitPluginImpl()
     registrar.addMethodCallDelegate(instance, channel: channel)
 
     let eventChannel = FlutterEventChannel(name: "flutter_alarmkit/events", binaryMessenger: registrar.messenger())
@@ -159,8 +189,8 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
   }
 
   private func storeButtonTints(alarmId: String, stop: ButtonConfig, pause: ButtonConfig? = nil, resume: ButtonConfig? = nil) {
-    guard let defaults = UserDefaults(suiteName: FlutterAlarmkitPlugin.appGroupId) else {
-      NSLog("⚠️ Could not access App Group UserDefaults (\(FlutterAlarmkitPlugin.appGroupId)). Button tint colors will use defaults.")
+    guard let defaults = UserDefaults(suiteName: AlarmkitPluginImpl.appGroupId) else {
+      NSLog("⚠️ Could not access App Group UserDefaults (\(AlarmkitPluginImpl.appGroupId)). Button tint colors will use defaults.")
       return
     }
     var tints: [String: String] = [
@@ -330,13 +360,13 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     // 3. Copy the file if it's not already there
     if !fileManager.fileExists(atPath: destinationUrl.path) {
         // Check if registrar is initialized
-        if FlutterAlarmkitPlugin.registrar == nil {
+        if AlarmkitPluginImpl.registrar == nil {
             NSLog("[flutter_alarmkit] Plugin registrar unavailable; using default sound")
             return .default
         }
 
         // Look up the actual path in the Flutter assets
-        guard let key = FlutterAlarmkitPlugin.registrar?.lookupKey(forAsset: assetPath),
+        guard let key = AlarmkitPluginImpl.registrar?.lookupKey(forAsset: assetPath),
               let sourcePath = Bundle.main.path(forResource: key, ofType: nil) else {
             NSLog("[flutter_alarmkit] Could not find sound asset '\(assetPath)' in bundle; using default sound")
             return .default
@@ -407,7 +437,7 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
 
     let stopConfig = parseButtonConfig(
       from: uiConfigDict?["stopButton"] as? [String: Any],
-      defaults: FlutterAlarmkitPlugin.defaultStopButton
+      defaults: AlarmkitPluginImpl.defaultStopButton
     )
 
     let alertContent = AlarmPresentation.Alert(
@@ -497,19 +527,19 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
 
     let stopConfig = parseButtonConfig(
       from: uiConfigDict?["stopButton"] as? [String: Any],
-      defaults: FlutterAlarmkitPlugin.defaultCountdownStopButton
+      defaults: AlarmkitPluginImpl.defaultCountdownStopButton
     )
     let repeatConfig = parseButtonConfig(
       from: uiConfigDict?["repeatButton"] as? [String: Any],
-      defaults: FlutterAlarmkitPlugin.defaultRepeatButton
+      defaults: AlarmkitPluginImpl.defaultRepeatButton
     )
     let pauseConfig = parseButtonConfig(
       from: uiConfigDict?["pauseButton"] as? [String: Any],
-      defaults: FlutterAlarmkitPlugin.defaultPauseButton
+      defaults: AlarmkitPluginImpl.defaultPauseButton
     )
     let resumeConfig = parseButtonConfig(
       from: uiConfigDict?["resumeButton"] as? [String: Any],
-      defaults: FlutterAlarmkitPlugin.defaultResumeButton
+      defaults: AlarmkitPluginImpl.defaultResumeButton
     )
 
     let countdownTitle = uiConfigDict?["countdownTitle"] as? String ?? label
@@ -639,7 +669,7 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
 
     let stopConfig = parseButtonConfig(
       from: uiConfigDict?["stopButton"] as? [String: Any],
-      defaults: FlutterAlarmkitPlugin.defaultStopButton
+      defaults: AlarmkitPluginImpl.defaultStopButton
     )
 
     let presentation = AlarmPresentation(

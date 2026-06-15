@@ -8,6 +8,7 @@
 * Expose `countdownAlarm()` on the public API (restarts an existing countdown alarm); previously it was reachable only through the platform interface.
 * Add value equality (`==`/`hashCode`/`toString`) to `AlarmUIConfig` and `AlarmButtonConfig`, document the `#RRGGBB` hex-color format, and validate that recurrent alarms specify at least one weekday.
 * Native hardening: reply to method calls on the platform thread, fix the alarm-updates stream handler (cancel on re-listen, no cross-thread shared state), and remove dead widget/extension code.
+* Register the plugin without an availability gate so iOS < 26 fails calls gracefully with `UNSUPPORTED_VERSION` instead of risking a launch-time trap (the iOS 26 implementation now lives in `AlarmkitPluginImpl`, reached through a runtime `#available` check). This makes the documented "iOS 26.0+ required" behavior real.
 * Setup-CLI robustness: Podfile/AppDelegate/entitlements patching now handles extra `do`/`end` blocks, trailing extensions, and self-closed `<array/>`; `--doctor` no longer fails on intentionally-customized widget files.
 
 ## 0.0.10
