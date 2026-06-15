@@ -53,7 +53,20 @@ Open `ios/Runner.xcworkspace` in Xcode:
 
 Don't worry about the Swift files Xcode generates (including extras like `AlarmkitWidgetControl.swift` or `AppIntent.swift` that some Xcode versions add anyway) — the next step replaces them with the plugin's files. With Xcode 16+ the target is a filesystem-synchronized folder, so files changed on disk appear in Xcode automatically; no dragging or manual file references are ever needed.
 
-### 3. Run the setup command
+### 3. Configure App Groups — 🖐 requires Xcode GUI
+
+While you're still in Xcode, for **both** the Runner and AlarmkitWidgetExtension targets:
+
+1. Go to **Signing & Capabilities** > **+ Capability** > **App Groups**
+2. Add `group.flutter-alarmkit`
+
+This is required for custom button tint colors to work in the Live Activity. Adding the capability also wires the entitlements files into the build settings automatically.
+
+> **Do all your Xcode work now** (steps 2 and 3). The setup command in step 4 must be the *last* thing to touch the project before `pod install` — see the note there for why.
+
+### 4. Quit Xcode, then run the setup command
+
+**Quit Xcode first (⌘Q).** This matters: Xcode 26 re-upgrades the project format (`objectVersion`) every time it saves the project — including when you create the target or add the App Groups capability — and CocoaPods can't parse the upgraded format. Running setup *after* all Xcode work, with Xcode closed, makes its fixes the last thing to touch the project, so they survive into `pod install`.
 
 ```bash
 dart run flutter_alarmkit:setup
@@ -64,38 +77,24 @@ This automatically:
 - Patches `Info.plist` with the required AlarmKit keys
 - Patches `AppDelegate.swift` with `FlutterImplicitEngineDelegate`
 - Patches `Podfile` with the widget extension target
-- Writes the plugin's widget files into `ios/AlarmkitWidget/` (replacing Xcode's placeholders and removing its extra generated files)
-- Creates `Runner.entitlements` with the App Group
+- Writes the plugin's widget files into `ios/AlarmkitWidget/` (replacing the placeholders Xcode created with the target, and removing its extra generated files)
+- Ensures `Runner.entitlements` contains the App Group
 - Downgrades the project format if Xcode upgraded it to one CocoaPods can't parse yet (`objectVersion` 70/77 → 60, [CocoaPods #12840](https://github.com/CocoaPods/CocoaPods/issues/12840))
 - Reorders the Runner build phases so the embed phases run before Flutter's `Thin Binary` (prevents the "Cycle inside Runner" build error)
 
-The command is idempotent and self-healing — re-run it any time something looks off. If you intentionally customized the widget Swift files, setup keeps your version and tells you; use `--force` to overwrite with the plugin templates.
+The command is idempotent and self-healing — re-run it any time something looks off (e.g. after any further Xcode change). If you intentionally customized the widget Swift files, setup keeps your version and tells you; use `--force` to overwrite with the plugin templates.
 
-> Ran setup *before* creating the Xcode target? No problem — Xcode overwrites the widget files when it creates the target; just run setup again.
+### 5. Build and run
 
-### 4. Configure App Groups — 🖐 requires Xcode GUI
-
-For **both** the Runner and AlarmkitWidgetExtension targets:
-
-1. Go to **Signing & Capabilities** > **+ Capability** > **App Groups**
-2. Add `group.flutter-alarmkit`
-
-This is required for custom button tint colors to work in the Live Activity. Adding the capability also wires the entitlements files into the build settings automatically.
-
-### 5. Verify (optional)
-
-```bash
-dart run flutter_alarmkit:setup --doctor
-```
-
-Runs a read-only check of every step above and prints pass/fail with the fix for anything broken. Useful before building, after Xcode updates, and when filing an issue (paste its output).
-
-### 6. Build and Run
+With Xcode still closed:
 
 ```bash
 cd ios && pod install && cd ..
+dart run flutter_alarmkit:setup --doctor
 flutter run --release
 ```
+
+`dart run flutter_alarmkit:setup --doctor` is a read-only check of every step above — it should report **all green**. If it flags **"Embed phases run after Thin Binary"** (`pod install` can append a build phase in the wrong spot), run `dart run flutter_alarmkit:setup` once more to reorder them, then `flutter run --release`. (Paste the doctor output when filing an issue.)
 
 If the build fails with `Cycle inside Runner`, run `dart run flutter_alarmkit:setup` once more (`pod install` can append a build phase in the wrong position on its first run), then build again.
 
@@ -292,7 +291,7 @@ dart run flutter_alarmkit:setup            # fixes everything it can
 ```
 
 **`pod install` fails with `Unable to find compatibility version string for object version '70'`**
-Xcode 16.3+/26 upgraded the project format when you added the widget target, and released CocoaPods versions can't read it yet ([CocoaPods #12840](https://github.com/CocoaPods/CocoaPods/issues/12840)). Run `dart run flutter_alarmkit:setup` (it patches `objectVersion` down automatically), then re-run `pod install`. Xcode may restore the new format after later saves — just re-run setup if the error returns.
+Xcode 16.3+/26 upgraded the project format when you created the widget target, and released CocoaPods versions can't read it yet ([CocoaPods #12840](https://github.com/CocoaPods/CocoaPods/issues/12840)). `dart run flutter_alarmkit:setup` patches `objectVersion` back down to 60 — **but only on disk**. Xcode rewrites it to 70 every time it *saves* the project, so if you run setup and then do anything in Xcode (most commonly: adding the App Groups capability), the fix is undone before `pod install` runs. The reliable fix: do all Xcode work first, then **quit Xcode**, then run `dart run flutter_alarmkit:setup`, then `pod install` — all with Xcode closed. If the error returns, an Xcode save snuck in; quit it and re-run setup before `pod install`.
 
 **Build fails with `Error (Xcode): Cycle inside Runner`**
 Xcode added the extension's embed phases after Flutter's `Thin Binary` phase. Run `dart run flutter_alarmkit:setup` (it reorders the phases automatically), then build again. Manual alternative: Runner target > Build Phases > drag `Embed Foundation Extensions` and `[CP] Embed Pods Frameworks` **above** `Thin Binary`.

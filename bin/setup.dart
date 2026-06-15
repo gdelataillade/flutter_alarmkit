@@ -700,34 +700,37 @@ bool _widgetTargetExists(Directory projectRoot) {
 void _printNextSteps(Directory projectRoot) {
   print('');
   if (!_widgetTargetExists(projectRoot)) {
-    print('Remaining manual steps:');
+    print('Remaining steps (do all the Xcode GUI work first, run setup last):');
     print('  1. Open ios/Runner.xcworkspace in Xcode');
     print('  2. File > New > Target > Widget Extension');
     print('     - Name it exactly "AlarmkitWidget"');
     print('     - Check only "Live Activity" (uncheck any other options)');
     print('     - Click Finish, then Activate if prompted');
-    print('  3. Re-run "dart run flutter_alarmkit:setup"');
-    print('     (Xcode overwrites the widget files when it creates the');
-    print('      target; re-running setup restores them and fixes the');
-    print('      project format for CocoaPods)');
-    print('  4. For BOTH the Runner and AlarmkitWidgetExtension targets:');
-    print('     - Go to Signing & Capabilities > + Capability > App Groups');
+    print('  3. For BOTH the Runner and AlarmkitWidgetExtension targets:');
+    print('     - Signing & Capabilities > + Capability > App Groups');
     print('     - Add "$kAppGroupId"');
-    print('  5. Run:');
+    print('  4. Quit Xcode, then re-run "dart run flutter_alarmkit:setup"');
+    print('     (Creating the target / adding capabilities makes Xcode');
+    print('      overwrite the widget files and upgrade the project format.');
+    print('      Running setup LAST, with Xcode closed, restores the files');
+    print('      and keeps the format CocoaPods can parse.)');
+    print('  5. With Xcode closed:');
     print('     cd ios && pod install && cd ..');
     print('     flutter run --release');
   } else {
-    print('Remaining manual steps:');
-    print('  1. If not done yet, for BOTH the Runner and');
-    print('     AlarmkitWidgetExtension targets in Xcode:');
-    print('     - Go to Signing & Capabilities > + Capability > App Groups');
+    print('Remaining steps:');
+    print('  1. If you have not added App Groups yet, do it in Xcode for BOTH');
+    print('     the Runner and AlarmkitWidgetExtension targets:');
+    print('     - Signing & Capabilities > + Capability > App Groups');
     print('     - Add "$kAppGroupId"');
-    print('  2. Run:');
+    print('     Then QUIT Xcode and run "dart run flutter_alarmkit:setup" once');
+    print('     more — adding the capability makes Xcode re-upgrade the');
+    print('     project format, which the re-run fixes. (Skip if already done.)');
+    print('  2. With Xcode closed:');
     print('     cd ios && pod install && cd ..');
     print('     flutter run --release');
-    print('     (If the build fails with "Cycle inside Runner", re-run');
-    print('      this setup — pod install can append a build phase in the');
-    print('      wrong position — then build again.)');
+    print('     (If the build fails with "Cycle inside Runner", run this setup');
+    print('      once more — pod install can reorder a build phase — then build.)');
   }
   print('');
   print('Verify your setup anytime with:');
