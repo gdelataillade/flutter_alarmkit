@@ -55,8 +55,9 @@ confusing errors if missing:
 - **A physical iOS 26 device** (or iOS 26 simulator) — AlarmKit is iOS 26 only.
   The plugin builds against the iOS 26 SDK. Release mode (`flutter run --release`)
   is the reliable way to test alarms.
-- **CocoaPods** — the plugin does not support Swift Package Manager yet. Flutter
-  prints an SPM warning on `pub add`; that warning is expected, not an error.
+- **CocoaPods** — the Widget Extension setup is CocoaPods-based (the CLI writes a
+  Podfile block and you run `pod install`). The plugin itself also supports Swift
+  Package Manager, so the rest of the app can use either dependency manager.
 - You are at the **root of the Flutter app** that will consume the plugin (the
   directory with `pubspec.yaml` and an `ios/` folder).
 
@@ -78,7 +79,7 @@ flutter pub add flutter_alarmkit
 ```
 
 This also runs `flutter pub get`, which the setup CLI needs in order to locate the
-plugin. (The SPM warning here is expected — see above.)
+plugin.
 
 ### 2. 🖐 Create the Widget Extension target (Xcode GUI — hand off to the user)
 
@@ -194,5 +195,6 @@ the `--doctor` output, plus Flutter/Xcode/iOS versions and device model.
   (the `objectVersion` downgrade and the build-phase reorder) — let it do them.
 - **Don't add `flutter_alarmkit` to the Runner target's pod list.** It belongs in
   the `AlarmkitWidgetExtension` Podfile block, which the CLI writes.
-- **Don't treat the SPM warning as an error.** CocoaPods is the supported path
-  today; the warning is informational.
+- **Keep CocoaPods for the Widget Extension.** The plugin now supports Swift Package
+  Manager, but the widget integration (the Podfile block + `pod install`) is
+  CocoaPods-based — don't remove the `Podfile` even if the app otherwise uses SPM.
