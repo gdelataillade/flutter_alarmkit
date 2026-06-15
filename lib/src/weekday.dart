@@ -2,7 +2,8 @@
 ///
 /// Enum positions are bit-significant: see [toBitmask]. This ordering must
 /// stay in lockstep with the native `decodeWeekdays` decoder in
-/// `ios/Classes/FlutterAlarmkitPlugin.swift`, which maps bit 0 to Monday.
+/// `ios/flutter_alarmkit/Sources/flutter_alarmkit/FlutterAlarmkitPlugin.swift`,
+/// which maps bit 0 to Monday.
 enum Weekday {
   /// Monday (enum position 0).
   monday,

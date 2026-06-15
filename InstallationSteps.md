@@ -27,7 +27,7 @@ These values are load-bearing — the plugin's code and setup tooling reference 
 | Widget Extension name (in the Xcode wizard) | `AlarmkitWidget` | Xcode derives the target `AlarmkitWidgetExtension` and the folder `ios/AlarmkitWidget/` from it; the Podfile block and entitlements reference the derived name |
 | App Group | `group.flutter-alarmkit` | Hardcoded in the plugin's Swift code; used to pass custom button colors to the widget via shared `UserDefaults` |
 | Minimum runtime | iOS 26.0 device | AlarmKit is an iOS 26 framework (the app itself may target lower iOS versions and gate alarm features at runtime) |
-| Toolchain | Xcode 26+, CocoaPods | Swift Package Manager is not supported yet |
+| Toolchain | Xcode 26+, CocoaPods | The plugin supports Swift Package Manager too, but the Widget Extension setup below is CocoaPods-based |
 
 Only two steps require the Xcode GUI (marked 🖐 below): creating the Widget Extension target and adding the App Groups capability. Everything else is automated by the setup CLI and verifiable with `dart run flutter_alarmkit:setup --doctor`.
 
