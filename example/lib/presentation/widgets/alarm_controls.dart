@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_alarmkit/flutter_alarmkit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/alarm_bloc.dart';
 import 'status_container.dart';
@@ -57,6 +58,45 @@ class AlarmControls extends StatelessWidget {
                     }
                   : null,
               child: const Text('Schedule Countdown Alarm (10s)'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: state.authStatus == 'Granted'
+                  ? () async {
+                      final plugin = FlutterAlarmkit();
+                      final id = await plugin.setCountdownAlarm(
+                        countdownDurationInSeconds: 15,
+                        repeatDurationInSeconds: 5,
+                        label: 'Custom UI Test',
+                        tintColor: '#FF6600',
+                        uiConfig: const AlarmUIConfig(
+                          stopButton: AlarmButtonConfig(
+                            text: 'End',
+                            icon: 'xmark.circle',
+                            tintColor: '#8B0000', // dark red
+                          ),
+                          pauseButton: AlarmButtonConfig(
+                            text: 'Hold',
+                            icon: 'hand.raised',
+                            tintColor: '#4B0082', // indigo
+                          ),
+                          resumeButton: AlarmButtonConfig(
+                            text: 'Go',
+                            icon: 'play.fill',
+                            tintColor: '#006400', // dark green
+                          ),
+                          repeatButton: AlarmButtonConfig(
+                            text: 'Again',
+                            icon: 'arrow.clockwise',
+                          ),
+                          countdownTitle: 'Counting down...',
+                          pausedTitle: 'On hold',
+                        ),
+                      );
+                      debugPrint('Custom alarm ID: $id');
+                    }
+                  : null,
+              child: const Text('Custom UI Alarm (15s)'),
             ),
             const SizedBox(height: 20),
             ElevatedButton(

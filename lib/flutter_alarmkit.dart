@@ -2,8 +2,11 @@ import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_alarmkit/flutter_alarmkit_method_channel.dart';
 
 import 'package:flutter_alarmkit/flutter_alarmkit_platform_interface.dart';
+import 'package:flutter_alarmkit/src/alarm_ui_config.dart';
 import 'package:flutter_alarmkit/src/weekday.dart' show Weekday;
 
+export 'src/alarm_button_config.dart' show AlarmButtonConfig;
+export 'src/alarm_ui_config.dart' show AlarmUIConfig;
 export 'src/weekday.dart' show Weekday;
 
 /// A plugin for scheduling alarms using AlarmKit on iOS.
@@ -59,7 +62,7 @@ class FlutterAlarmkit {
   ///
   /// Throws a [PlatformException] if the platform version is not supported
   /// (iOS < 26.0)
-  static Stream<dynamic> alarmUpdates() {
+  Stream<dynamic> alarmUpdates() {
     return FlutterAlarmkitPlatform.instance.alarmUpdates();
   }
 
@@ -68,7 +71,8 @@ class FlutterAlarmkit {
   /// [timestamp] should be a Unix timestamp in milliseconds since epoch.
   /// [label] is an optional string that will be displayed as the alarm title.
   /// [tintColor] is an optional string representing a color that helps users
-  /// associate the alarm with your app.
+  /// associate the alarm with your app. Must be in the form `#RRGGBB`
+  /// (6 hex digits, leading `#` optional); invalid values are ignored.
   /// This color is used throughout the alarm presentation:
   /// - In the alert presentation, it sets the fill color of the
   /// secondary button
@@ -107,12 +111,14 @@ class FlutterAlarmkit {
     String? label,
     String? tintColor,
     String? soundPath,
+    AlarmUIConfig? uiConfig,
   }) {
     return FlutterAlarmkitPlatform.instance.scheduleOneShotAlarm(
       timestamp: timestamp,
       label: label,
       tintColor: tintColor,
       soundPath: soundPath,
+      uiConfig: uiConfig?.toMap(),
     );
   }
 
@@ -122,7 +128,8 @@ class FlutterAlarmkit {
   /// [repeatDurationInSeconds] is the duration of the repeat in seconds.
   /// [label] is an optional string that will be displayed as the alarm title.
   /// [tintColor] is an optional string representing a color that helps users
-  /// associate the alarm with your app.
+  /// associate the alarm with your app. Must be in the form `#RRGGBB`
+  /// (6 hex digits, leading `#` optional); invalid values are ignored.
   /// This color is used throughout the alarm presentation:
   /// - In the alert presentation, it sets the fill color of the
   /// secondary button
@@ -150,12 +157,19 @@ class FlutterAlarmkit {
   ///
   /// Returns a [Future<String>] that completes with the UUID of the scheduled
   /// alarm.
+  ///
+  /// Throws a [PlatformException] if:
+  /// - The platform version is not supported (iOS < 26.0)
+  /// - The duration parameters are invalid
+  /// - The alarm scheduling fails
+  /// - The app is not authorized to schedule alarms
   Future<String> setCountdownAlarm({
     required int countdownDurationInSeconds,
     required int repeatDurationInSeconds,
     String? label,
     String? tintColor,
     String? soundPath,
+    AlarmUIConfig? uiConfig,
   }) {
     return FlutterAlarmkitPlatform.instance.setCountdownAlarm(
       countdownDurationInSeconds: countdownDurationInSeconds,
@@ -163,17 +177,20 @@ class FlutterAlarmkit {
       label: label,
       tintColor: tintColor,
       soundPath: soundPath,
+      uiConfig: uiConfig?.toMap(),
     );
   }
 
   /// Schedules a recurrent alarm for the specified weekdays and time.
   ///
-  /// [weekdays] is a set of weekdays when the alarm should trigger.
+  /// [weekdays] is a set of weekdays when the alarm should trigger;
+  /// it must contain at least one weekday.
   /// [hour] is the hour of the day (0-23)
   /// [minute] is the minute of the hour (0-59)
   /// [label] is an optional string that will be displayed as the alarm title.
   /// [tintColor] is an optional string representing a color that helps users
-  /// associate the alarm with your app.
+  /// associate the alarm with your app. Must be in the form `#RRGGBB`
+  /// (6 hex digits, leading `#` optional); invalid values are ignored.
   ///
   /// [soundPath] is an optional string specifying the path to a custom audio file
   /// in your Flutter assets (e.g., "assets/sounds/alarm.caf").
@@ -208,7 +225,15 @@ class FlutterAlarmkit {
     String? label,
     String? tintColor,
     String? soundPath,
+    AlarmUIConfig? uiConfig,
   }) {
+    if (weekdays.isEmpty) {
+      throw ArgumentError.value(
+        weekdays,
+        'weekdays',
+        'A recurrent alarm requires at least one weekday.',
+      );
+    }
     return FlutterAlarmkitPlatform.instance.scheduleRecurrentAlarm(
       weekdayMask: Weekday.toBitmask(weekdays),
       hour: hour,
@@ -216,6 +241,7 @@ class FlutterAlarmkit {
       label: label,
       tintColor: tintColor,
       soundPath: soundPath,
+      uiConfig: uiConfig?.toMap(),
     );
   }
 
@@ -236,7 +262,8 @@ class FlutterAlarmkit {
   /// [alarmId] is the UUID of the alarm to cancel.
   ///
   /// Returns a [Future<bool>] that completes with `true` if the alarm was
-  /// canceled, `false` otherwise (e.g. if the alarm doesn't exist).
+  /// canceled, `false` if the operation failed (e.g. the alarm doesn't exist, or the
+  /// system rejected the request).
   Future<bool> cancelAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.cancelAlarm(alarmId: alarmId);
   }
@@ -246,7 +273,8 @@ class FlutterAlarmkit {
   /// [alarmId] is the UUID of the alarm to pause.
   ///
   /// Returns a [Future<bool>] that completes with `true` if the alarm was
-  /// paused, `false` otherwise (e.g. if the alarm doesn't exist).
+  /// paused, `false` if the operation failed (e.g. the alarm doesn't exist, or the
+  /// system rejected the request).
   Future<bool> pauseAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.pauseAlarm(alarmId: alarmId);
   }
@@ -256,9 +284,25 @@ class FlutterAlarmkit {
   /// [alarmId] is the UUID of the alarm to resume.
   ///
   /// Returns a [Future<bool>] that completes with `true` if the alarm was
-  /// resumed, `false` otherwise (e.g. if the alarm doesn't exist).
+  /// resumed, `false` if the operation failed (e.g. the alarm doesn't exist, or the
+  /// system rejected the request).
   Future<bool> resumeAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.resumeAlarm(alarmId: alarmId);
+  }
+
+  /// Restarts the countdown of the alarm with the specified ID.
+  ///
+  /// Re-triggers the countdown for an existing countdown alarm (for example
+  /// after it has alerted), mirroring AlarmKit's `countdown(id:)`. This is the
+  /// lifecycle sibling of [pauseAlarm]/[resumeAlarm]; to schedule a *new*
+  /// countdown alarm, use [setCountdownAlarm] instead.
+  ///
+  /// [alarmId] is the UUID of the alarm to restart the countdown for.
+  ///
+  /// Returns a [Future<bool>] that completes with `true` on success,
+  /// `false` if the operation failed (e.g. the alarm doesn't exist).
+  Future<bool> countdownAlarm({required String alarmId}) {
+    return FlutterAlarmkitPlatform.instance.countdownAlarm(alarmId: alarmId);
   }
 
   /// If the alarm is a one-shot, meaning it doesn't have a repeating schedule,
@@ -269,7 +313,8 @@ class FlutterAlarmkit {
   /// [alarmId] is the UUID of the alarm to stop.
   ///
   /// Returns a [Future<bool>] that completes with `true` if the alarm was
-  /// stopped, `false` otherwise (e.g. if the alarm doesn't exist).
+  /// stopped, `false` if the operation failed (e.g. the alarm doesn't exist, or the
+  /// system rejected the request).
   Future<bool> stopAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.stopAlarm(alarmId: alarmId);
   }

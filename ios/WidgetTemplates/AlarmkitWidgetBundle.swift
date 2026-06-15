@@ -6,6 +6,6 @@ import SwiftUI
 struct AlarmLiveActivityBundle: WidgetBundle {
   @WidgetBundleBuilder
   var body: some Widget {
-    AlarmLiveActivity()
+    AlarmkitLiveActivity()
   }
 }

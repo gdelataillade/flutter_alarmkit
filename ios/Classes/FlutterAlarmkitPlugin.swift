@@ -4,8 +4,68 @@ import UIKit
 import AlarmKit
 import SwiftUI
 
-@available(iOS 26.0, *)
+/// Public registration entry point, callable on any iOS version.
+///
+/// The generated plugin registrant invokes `register(with:)` unconditionally,
+/// so this shell must NOT be `@available`-gated — otherwise the call traps on
+/// devices below the deployment floor. AlarmKit and the real implementation
+/// (`AlarmkitPluginImpl`) require iOS 26, so on older systems we register a
+/// method-call handler that fails every call with a clear `UNSUPPORTED_VERSION`
+/// error instead of touching an unavailable symbol.
 public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
+  public static func register(with registrar: FlutterPluginRegistrar) {
+    if #available(iOS 26.0, *) {
+      AlarmkitPluginImpl.register(with: registrar)
+    } else {
+      let channel = FlutterMethodChannel(
+        name: "flutter_alarmkit",
+        binaryMessenger: registrar.messenger()
+      )
+      channel.setMethodCallHandler { _, result in
+        result(
+          FlutterError(
+            code: "UNSUPPORTED_VERSION",
+            message: "AlarmKit is only available on iOS 26.0 and above",
+            details: nil
+          )
+        )
+      }
+
+      // Also fail the alarm-updates stream with the same error, so listening to
+      // FlutterAlarmkit().alarmUpdates() on iOS < 26 surfaces UNSUPPORTED_VERSION
+      // rather than a missing-handler error.
+      let eventChannel = FlutterEventChannel(
+        name: "flutter_alarmkit/events",
+        binaryMessenger: registrar.messenger()
+      )
+      eventChannel.setStreamHandler(UnsupportedVersionStreamHandler())
+    }
+  }
+}
+
+/// Stream handler used on iOS < 26: fails every listen with `UNSUPPORTED_VERSION`
+/// so the alarm-updates stream matches the method channel's behavior. Kept
+/// outside the `@available` implementation so it is safe to instantiate on any
+/// iOS version.
+private class UnsupportedVersionStreamHandler: NSObject, FlutterStreamHandler {
+  func onListen(
+    withArguments arguments: Any?,
+    eventSink events: @escaping FlutterEventSink
+  ) -> FlutterError? {
+    return FlutterError(
+      code: "UNSUPPORTED_VERSION",
+      message: "AlarmKit is only available on iOS 26.0 and above",
+      details: nil
+    )
+  }
+
+  func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    return nil
+  }
+}
+
+@available(iOS 26.0, *)
+public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
   // Store the registrar as a static property
   private static var registrar: FlutterPluginRegistrar?
   
@@ -17,7 +77,7 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
       name: "flutter_alarmkit",
       binaryMessenger: registrar.messenger()
     )
-    let instance = FlutterAlarmkitPlugin()
+    let instance = AlarmkitPluginImpl()
     registrar.addMethodCallDelegate(instance, channel: channel)
 
     let eventChannel = FlutterEventChannel(name: "flutter_alarmkit/events", binaryMessenger: registrar.messenger())
@@ -25,7 +85,17 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     eventChannel.setStreamHandler(streamHandler)
   }
 
-  public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+  public func handle(_ call: FlutterMethodCall, result rawResult: @escaping FlutterResult) {
+    // Flutter requires channel replies on the platform (main) thread. The async
+    // helpers below resume on a background executor, so funnel every reply back
+    // to main before invoking the original callback.
+    let result: FlutterResult = { value in
+      if Thread.isMainThread {
+        rawResult(value)
+      } else {
+        DispatchQueue.main.async { rawResult(value) }
+      }
+    }
     switch call.method {
     case "getPlatformVersion":
       result("iOS " + UIDevice.current.systemVersion)
@@ -84,6 +154,88 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     let green = CGFloat((intVal >> 8)  & 0xFF) / 255.0
     let blue  = CGFloat(intVal         & 0xFF) / 255.0
     return UIColor(red: red, green: green, blue: blue, alpha: 1.0)
+  }
+
+  // MARK: - App Group
+
+  static let appGroupId = "group.flutter-alarmkit"
+
+  // MARK: - Button Config
+
+  private struct ButtonConfig {
+    let text: String
+    let textColor: Color
+    let systemImageName: String
+    let tintColor: Color
+
+    func toAlarmButton() -> AlarmButton {
+      return AlarmButton(text: LocalizedStringResource(stringLiteral: text), textColor: textColor, systemImageName: systemImageName)
+    }
+
+    var tintHexString: String {
+      let uiColor = UIColor(tintColor)
+      var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+      uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+      return String(format: "#%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
+    }
+  }
+
+  private static let defaultStopButton = ButtonConfig(
+    text: "Stop", textColor: .white, systemImageName: "stop.circle", tintColor: .red
+  )
+  private static let defaultCountdownStopButton = ButtonConfig(
+    text: "Done", textColor: .white, systemImageName: "stop.circle", tintColor: .red
+  )
+  private static let defaultPauseButton = ButtonConfig(
+    text: "Pause", textColor: .green, systemImageName: "pause.circle", tintColor: .orange
+  )
+  private static let defaultResumeButton = ButtonConfig(
+    text: "Resume", textColor: .green, systemImageName: "play.circle", tintColor: .green
+  )
+  private static let defaultRepeatButton = ButtonConfig(
+    text: "Repeat", textColor: .white, systemImageName: "repeat.circle", tintColor: .blue
+  )
+
+  private func parseButtonConfig(
+    from dict: [String: Any]?,
+    defaults: ButtonConfig
+  ) -> ButtonConfig {
+    guard let dict = dict else { return defaults }
+    let text = dict["text"] as? String ?? defaults.text
+    let icon = dict["icon"] as? String ?? defaults.systemImageName
+    let textColor: Color = {
+      if let hex = dict["textColor"] as? String, let uiColor = color(from: hex) {
+        return Color(uiColor: uiColor)
+      }
+      return defaults.textColor
+    }()
+    let tintColor: Color = {
+      if let hex = dict["tintColor"] as? String, let uiColor = color(from: hex) {
+        return Color(uiColor: uiColor)
+      }
+      return defaults.tintColor
+    }()
+    return ButtonConfig(text: text, textColor: textColor, systemImageName: icon, tintColor: tintColor)
+  }
+
+  private func storeButtonTints(alarmId: String, stop: ButtonConfig, pause: ButtonConfig? = nil, resume: ButtonConfig? = nil, repeatButton: ButtonConfig? = nil) {
+    guard let defaults = UserDefaults(suiteName: AlarmkitPluginImpl.appGroupId) else {
+      NSLog("⚠️ Could not access App Group UserDefaults (\(AlarmkitPluginImpl.appGroupId)). Button tint colors will use defaults.")
+      return
+    }
+    var tints: [String: String] = [
+      "stopTint": stop.tintHexString,
+    ]
+    if let pause = pause {
+      tints["pauseTint"] = pause.tintHexString
+    }
+    if let resume = resume {
+      tints["resumeTint"] = resume.tintHexString
+    }
+    if let repeatButton = repeatButton {
+      tints["repeatTint"] = repeatButton.tintHexString
+    }
+    defaults.set(tints, forKey: "alarm_tints_\(alarmId)")
   }
 
   // MARK: - Authorization
@@ -170,12 +322,38 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     guard let args = call.arguments as? [String: Any] else {
       result(FlutterError(
         code: "BAD_ARGS",
-        message: "Invalid arguments",
+        message: "Invalid arguments: expected a dictionary payload.",
         details: nil
       ))
       return nil
     }
     return args
+  }
+
+  private func parseAlarmUUID(
+    from call: FlutterMethodCall,
+    methodName: String,
+    result: @escaping FlutterResult
+  ) -> (alarmId: String, uuid: UUID)? {
+    guard let alarmId = call.arguments as? String, !alarmId.isEmpty else {
+      result(FlutterError(
+        code: "BAD_ARGS",
+        message: "Invalid arguments for \(methodName): expected non-empty alarmId string.",
+        details: nil
+      ))
+      return nil
+    }
+
+    guard let uuid = UUID(uuidString: alarmId) else {
+      result(FlutterError(
+        code: "BAD_ARGS",
+        message: "Invalid alarmId for \(methodName): expected UUID string.",
+        details: nil
+      ))
+      return nil
+    }
+
+    return (alarmId, uuid)
   }
 
   private func parseLabel(from args: [String: Any]) -> String {
@@ -199,8 +377,6 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     guard let assetPath = assetPath, !assetPath.isEmpty else {
       return .default
     }
-    
-    NSLog("🔊 resolveSoundAsset called with assetPath: \(assetPath)")
 
     // 1. Get the filename from the asset path (e.g., "assets/marimba.caf" -> "marimba.caf")
     let fileName = URL(fileURLWithPath: assetPath).lastPathComponent
@@ -208,7 +384,7 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     // 2. Define the target URL in Library/Sounds
     let fileManager = FileManager.default
     guard let libraryUrl = fileManager.urls(for: .libraryDirectory, in: .userDomainMask).first else {
-        NSLog("❌ ERROR: Could not find Library directory")
+        NSLog("[flutter_alarmkit] Could not find Library directory; using default sound")
         return .default
     }
     let soundsUrl = libraryUrl.appendingPathComponent("Sounds")
@@ -217,36 +393,32 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     // 3. Copy the file if it's not already there
     if !fileManager.fileExists(atPath: destinationUrl.path) {
         // Check if registrar is initialized
-        if FlutterAlarmkitPlugin.registrar == nil {
-            NSLog("❌ ERROR: FlutterAlarmkitPlugin.registrar is nil!")
+        if AlarmkitPluginImpl.registrar == nil {
+            NSLog("[flutter_alarmkit] Plugin registrar unavailable; using default sound")
             return .default
         }
 
         // Look up the actual path in the Flutter assets
-        guard let key = FlutterAlarmkitPlugin.registrar?.lookupKey(forAsset: assetPath),
+        guard let key = AlarmkitPluginImpl.registrar?.lookupKey(forAsset: assetPath),
               let sourcePath = Bundle.main.path(forResource: key, ofType: nil) else {
-            NSLog("❌ Could not find asset '\(assetPath)' in bundle")
+            NSLog("[flutter_alarmkit] Could not find sound asset '\(assetPath)' in bundle; using default sound")
             return .default
         }
-        
+
         do {
             // Create Library/Sounds directory if needed
             try fileManager.createDirectory(at: soundsUrl, withIntermediateDirectories: true)
-            
+
             // Copy the file
             try fileManager.copyItem(at: URL(fileURLWithPath: sourcePath), to: destinationUrl)
-            NSLog("✅ Copied sound to Library/Sounds: \(destinationUrl.path)")
         } catch {
-            NSLog("❌ Failed to copy sound: \(error)")
+            NSLog("[flutter_alarmkit] Failed to copy sound asset; using default sound: \(error)")
             return .default
       }
-    } else {
-        NSLog("✅ Sound already exists in Library/Sounds: \(destinationUrl.path)")
     }
 
-    // 4. Return just the filename. 
+    // 4. Return just the filename.
     // The system automatically looks in the main bundle and Library/Sounds.
-    NSLog("📦 Returning .named(\(fileName))")
     return .named(fileName)
   }
 
@@ -274,15 +446,36 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     guard await ensureAuthorized(result: result) else { return }
 
     // 2. Parse arguments
-    guard let args = parseArgs(call, result: result),
-          let timestampMs = args["timestamp"] as? Double else { return }
+    guard let args = parseArgs(call, result: result) else { return }
+    guard let timestampMs = args["timestamp"] as? Double else {
+      result(FlutterError(
+        code: "BAD_ARGS",
+        message: "Invalid timestamp: expected a number in milliseconds.",
+        details: nil
+      ))
+      return
+    }
+    guard timestampMs.isFinite else {
+      result(FlutterError(
+        code: "BAD_ARGS",
+        message: "Invalid timestamp: expected a finite number in milliseconds.",
+        details: nil
+      ))
+      return
+    }
 
     let label = parseLabel(from: args)
     let date = Date(timeIntervalSince1970: timestampMs / 1000)
+    let uiConfigDict = args["uiConfig"] as? [String: Any]
+
+    let stopConfig = parseButtonConfig(
+      from: uiConfigDict?["stopButton"] as? [String: Any],
+      defaults: AlarmkitPluginImpl.defaultStopButton
+    )
 
     let alertContent = AlarmPresentation.Alert(
       title: LocalizedStringResource(stringLiteral: label),
-      stopButton: AlarmButton(text: "Stop", textColor: .white, systemImageName: "stop.circle")
+      stopButton: stopConfig.toAlarmButton()
     )
 
     let tintColor = parseTintColor(from: args)
@@ -301,12 +494,12 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
         sound: resolveSoundAsset(soundPath),
     )
 
-    // 7. Schedule and return the UUID string
     do {
       let alarm = try await manager.schedule(
         id: UUID(),
         configuration: alarmConfiguration
       )
+      storeButtonTints(alarmId: alarm.id.uuidString, stop: stopConfig)
       result(alarm.id.uuidString)
     } catch {
       result(FlutterError(
@@ -327,32 +520,78 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     guard await ensureAuthorized(result: result) else { return }
 
     // 2. Parse arguments
-    guard let args = parseArgs(call, result: result),
-          let preSec = args["countdownDurationInSeconds"] as? Int,
-          let postSec = args["repeatDurationInSeconds"] as? Int else { return }
+    guard let args = parseArgs(call, result: result) else { return }
+    guard let preSec = args["countdownDurationInSeconds"] as? Int else {
+      result(FlutterError(
+        code: "BAD_ARGS",
+        message: "Invalid countdownDurationInSeconds: expected an integer.",
+        details: nil
+      ))
+      return
+    }
+    guard let postSec = args["repeatDurationInSeconds"] as? Int else {
+      result(FlutterError(
+        code: "BAD_ARGS",
+        message: "Invalid repeatDurationInSeconds: expected an integer.",
+        details: nil
+      ))
+      return
+    }
+    guard preSec > 0 else {
+      result(FlutterError(
+        code: "BAD_ARGS",
+        message: "Invalid countdownDurationInSeconds: expected a value greater than 0.",
+        details: nil
+      ))
+      return
+    }
+    guard postSec >= 0 else {
+      result(FlutterError(
+        code: "BAD_ARGS",
+        message: "Invalid repeatDurationInSeconds: expected a value greater than or equal to 0.",
+        details: nil
+      ))
+      return
+    }
 
     let label = parseLabel(from: args)
     let countdownDuration = Alarm.CountdownDuration(preAlert: TimeInterval(preSec), postAlert: TimeInterval(postSec))
+    let uiConfigDict = args["uiConfig"] as? [String: Any]
 
-    let stopButton = AlarmButton(text: "Done", textColor: .white, systemImageName: "stop.circle")
-    let repeatButton = AlarmButton(text: "Repeat", textColor: .white, systemImageName: "repeat.circle")
-    let pauseButton = AlarmButton(text: "Pause", textColor: .green, systemImageName: "pause.circle")
-    let resumeButton = AlarmButton(text: "Resume", textColor: .green, systemImageName: "play.circle")
+    let stopConfig = parseButtonConfig(
+      from: uiConfigDict?["stopButton"] as? [String: Any],
+      defaults: AlarmkitPluginImpl.defaultCountdownStopButton
+    )
+    let repeatConfig = parseButtonConfig(
+      from: uiConfigDict?["repeatButton"] as? [String: Any],
+      defaults: AlarmkitPluginImpl.defaultRepeatButton
+    )
+    let pauseConfig = parseButtonConfig(
+      from: uiConfigDict?["pauseButton"] as? [String: Any],
+      defaults: AlarmkitPluginImpl.defaultPauseButton
+    )
+    let resumeConfig = parseButtonConfig(
+      from: uiConfigDict?["resumeButton"] as? [String: Any],
+      defaults: AlarmkitPluginImpl.defaultResumeButton
+    )
+
+    let countdownTitle = uiConfigDict?["countdownTitle"] as? String ?? label
+    let pausedTitle = uiConfigDict?["pausedTitle"] as? String ?? label
 
     let presentation = AlarmPresentation(
       alert: AlarmPresentation.Alert(
         title: LocalizedStringResource(stringLiteral: label),
-        stopButton: stopButton,
-        secondaryButton: repeatButton,
+        stopButton: stopConfig.toAlarmButton(),
+        secondaryButton: repeatConfig.toAlarmButton(),
         secondaryButtonBehavior: .countdown
       ),
       countdown: AlarmPresentation.Countdown(
-        title: LocalizedStringResource(stringLiteral: label),
-        pauseButton: pauseButton
+        title: LocalizedStringResource(stringLiteral: countdownTitle),
+        pauseButton: pauseConfig.toAlarmButton()
       ),
       paused: AlarmPresentation.Paused(
-        title: LocalizedStringResource(stringLiteral: label),
-        resumeButton: resumeButton
+        title: LocalizedStringResource(stringLiteral: pausedTitle),
+        resumeButton: resumeConfig.toAlarmButton()
       )
     )
     let tintColor = parseTintColor(from: args)
@@ -368,11 +607,17 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
         sound: resolveSoundAsset(soundPath),
       )
 
-    // 7. Schedule and return the UUID string
     do {
       let alarm = try await manager.schedule(
         id: UUID(),
         configuration: alarmConfiguration
+      )
+      storeButtonTints(
+        alarmId: alarm.id.uuidString,
+        stop: stopConfig,
+        pause: pauseConfig,
+        resume: resumeConfig,
+        repeatButton: repeatConfig
       )
       result(alarm.id.uuidString)
     } catch {
@@ -381,7 +626,7 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
         message: "Failed to schedule countdown alarm: \(error.localizedDescription)",
         details: nil
       ))
-    } 
+    }
   }
 
   private func scheduleRecurrentAlarm(
@@ -394,11 +639,55 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     guard await ensureAuthorized(result: result) else { return }
 
     // 2. Parse args
-    guard let args = parseArgs(call, result: result),
-          let mask = args["weekdayMask"] as? Int,
-          let hour = args["hour"] as? Int,
-          let minute = args["minute"] as? Int
-    else { return }
+    guard let args = parseArgs(call, result: result) else { return }
+    guard let mask = args["weekdayMask"] as? Int else {
+      result(FlutterError(
+        code: "BAD_ARGS",
+        message: "Invalid weekdayMask: expected an integer bitmask.",
+        details: nil
+      ))
+      return
+    }
+    guard let hour = args["hour"] as? Int else {
+      result(FlutterError(
+        code: "BAD_ARGS",
+        message: "Invalid hour: expected an integer between 0 and 23.",
+        details: nil
+      ))
+      return
+    }
+    guard let minute = args["minute"] as? Int else {
+      result(FlutterError(
+        code: "BAD_ARGS",
+        message: "Invalid minute: expected an integer between 0 and 59.",
+        details: nil
+      ))
+      return
+    }
+    guard mask != 0 else {
+      result(FlutterError(
+        code: "BAD_ARGS",
+        message: "Invalid weekdayMask: expected at least one selected weekday.",
+        details: nil
+      ))
+      return
+    }
+    guard (0...23).contains(hour) else {
+      result(FlutterError(
+        code: "BAD_ARGS",
+        message: "Invalid hour: expected a value between 0 and 23.",
+        details: nil
+      ))
+      return
+    }
+    guard (0...59).contains(minute) else {
+      result(FlutterError(
+        code: "BAD_ARGS",
+        message: "Invalid minute: expected a value between 0 and 59.",
+        details: nil
+      ))
+      return
+    }
 
     // 3. Decode bitmask into weekdays
     let weekdays = decodeWeekdays(from: mask)
@@ -410,14 +699,17 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
 
     // 5. Build presentation UI
     let label = parseLabel(from: args)
+    let uiConfigDict = args["uiConfig"] as? [String: Any]
+
+    let stopConfig = parseButtonConfig(
+      from: uiConfigDict?["stopButton"] as? [String: Any],
+      defaults: AlarmkitPluginImpl.defaultStopButton
+    )
+
     let presentation = AlarmPresentation(
       alert: AlarmPresentation.Alert(
         title: LocalizedStringResource(stringLiteral: label),
-        stopButton: AlarmButton(
-          text: "Stop",
-          textColor: .white,
-          systemImageName: "stop.circle"
-        )
+        stopButton: stopConfig.toAlarmButton()
       )
     )
     let tintColor = parseTintColor(from: args)
@@ -439,6 +731,7 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
       let alarm = try await manager.schedule(
         id: UUID(), configuration: config
       )
+      storeButtonTints(alarmId: alarm.id.uuidString, stop: stopConfig)
       result(alarm.id.uuidString)
     } catch {
       result(FlutterError(
@@ -469,15 +762,19 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     result: @escaping FlutterResult
   ) async {
     let manager = AlarmManager.shared
-    guard let alarmId = call.arguments as? String else { return }
+    guard let parsed = parseAlarmUUID(
+      from: call,
+      methodName: "cancelAlarm",
+      result: result
+    ) else { return }
 
     do {
-      try manager.cancel(id: UUID(uuidString: alarmId)!)
+      try manager.cancel(id: parsed.uuid)
       result(true)
     } catch {
       result(FlutterError(
         code: "CANCEL_ERROR",
-        message: "Failed to cancel alarm \(alarmId): \(error.localizedDescription)",
+        message: "Failed to cancel alarm \(parsed.alarmId): \(error.localizedDescription)",
         details: nil
       ))
     }
@@ -488,15 +785,19 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     result: @escaping FlutterResult
   ) async {
     let manager = AlarmManager.shared
-    guard let alarmId = call.arguments as? String else { return }
+    guard let parsed = parseAlarmUUID(
+      from: call,
+      methodName: "countdownAlarm",
+      result: result
+    ) else { return }
 
     do {
-      try manager.countdown(id: UUID(uuidString: alarmId)!)
+      try manager.countdown(id: parsed.uuid)
       result(true)
     } catch {
       result(FlutterError(
         code: "COUNTDOWN_ERROR",
-        message: "Failed to countdown alarm \(alarmId): \(error.localizedDescription)",
+        message: "Failed to countdown alarm \(parsed.alarmId): \(error.localizedDescription)",
         details: nil
       ))
     }
@@ -507,15 +808,19 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     result: @escaping FlutterResult
   ) async {
     let manager = AlarmManager.shared
-    guard let alarmId = call.arguments as? String else { return }
+    guard let parsed = parseAlarmUUID(
+      from: call,
+      methodName: "pauseAlarm",
+      result: result
+    ) else { return }
 
     do {
-      try manager.pause(id: UUID(uuidString: alarmId)!)
+      try manager.pause(id: parsed.uuid)
       result(true)
     } catch {
       result(FlutterError(
         code: "PAUSE_ERROR",
-        message: "Failed to pause alarm \(alarmId): \(error.localizedDescription)",
+        message: "Failed to pause alarm \(parsed.alarmId): \(error.localizedDescription)",
         details: nil
       ))
     }
@@ -526,15 +831,19 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     result: @escaping FlutterResult
   ) async {
     let manager = AlarmManager.shared
-    guard let alarmId = call.arguments as? String else { return }
+    guard let parsed = parseAlarmUUID(
+      from: call,
+      methodName: "resumeAlarm",
+      result: result
+    ) else { return }
 
     do {
-      try manager.resume(id: UUID(uuidString: alarmId)!)
+      try manager.resume(id: parsed.uuid)
       result(true)
     } catch {
       result(FlutterError(
         code: "RESUME_ERROR",
-        message: "Failed to resume alarm \(alarmId): \(error.localizedDescription)",
+        message: "Failed to resume alarm \(parsed.alarmId): \(error.localizedDescription)",
         details: nil
       ))
     }
@@ -546,25 +855,21 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
     result: @escaping FlutterResult
   ) async {
     let manager = AlarmManager.shared
-    guard let alarmId = call.arguments as? String else {
-      result(FlutterError(
-        code: "BAD_ARGS",
-        message: "Invalid arguments for stopAlarm",
-        details: nil
-      ))
-      return
-    }
+    guard let parsed = parseAlarmUUID(
+      from: call,
+      methodName: "stopAlarm",
+      result: result
+    ) else { return }
 
     do {
-      try manager.stop(id: UUID(uuidString: alarmId)!)
+      try manager.stop(id: parsed.uuid)
       result(true)
     } catch {
       result(FlutterError(
         code: "STOP_ERROR",
-        message: "Failed to stop alarm \(alarmId): \(error.localizedDescription)",
+        message: "Failed to stop alarm \(parsed.alarmId): \(error.localizedDescription)",
         details: nil
       ))
     }
   }
 }
-

@@ -5,7 +5,12 @@ import SwiftUI
 import WidgetKit
 
 @available(iOS 26.0, *)
-struct AlarmLiveActivity: Widget {
+public struct NeverMetadata: AlarmMetadata, Codable, Hashable {
+    public init() {}
+}
+
+@available(iOS 26.0, *)
+struct AlarmkitLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: AlarmAttributes<NeverMetadata>.self) { context in
             // Lock Screen / Notification Center
@@ -145,12 +150,55 @@ struct AlarmProgressView: View {
     }
 }
 
+// MARK: - Tint Color Helpers
+
+@available(iOS 26.0, *)
+private func colorFromHex(_ hex: String) -> Color? {
+    var hexString = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+    if hexString.hasPrefix("#") { hexString.removeFirst() }
+    guard hexString.count == 6, let intVal = Int(hexString, radix: 16) else { return nil }
+    let r = Double((intVal >> 16) & 0xFF) / 255.0
+    let g = Double((intVal >> 8) & 0xFF) / 255.0
+    let b = Double(intVal & 0xFF) / 255.0
+    return Color(red: r, green: g, blue: b)
+}
+
+@available(iOS 26.0, *)
+private func loadButtonTints(for alarmID: UUID) -> [String: String] {
+    let defaults = UserDefaults(suiteName: "group.flutter-alarmkit")
+    return defaults?.dictionary(forKey: "alarm_tints_\(alarmID.uuidString)") as? [String: String] ?? [:]
+}
+
 // MARK: - Control Buttons
 
 @available(iOS 26.0, *)
 struct AlarmControls: View {
     let presentation: AlarmPresentation
     let state: AlarmPresentationState
+
+    private var tints: [String: String] {
+        loadButtonTints(for: state.alarmID)
+    }
+
+    private var stopTint: Color {
+        if let hex = tints["stopTint"], let c = colorFromHex(hex) { return c }
+        return .red
+    }
+
+    private var pauseTint: Color {
+        if let hex = tints["pauseTint"], let c = colorFromHex(hex) { return c }
+        return .orange
+    }
+
+    private var resumeTint: Color {
+        if let hex = tints["resumeTint"], let c = colorFromHex(hex) { return c }
+        return .green
+    }
+
+    private var repeatTint: Color {
+        if let hex = tints["repeatTint"], let c = colorFromHex(hex) { return c }
+        return .blue
+    }
 
     var body: some View {
         HStack(spacing: 6) {
@@ -159,13 +207,21 @@ struct AlarmControls: View {
                 if let btn = presentation.countdown?.pauseButton {
                     ButtonView(config: btn,
                                intent: PauseIntent(alarmID: state.alarmID.uuidString),
-                               tint: .orange)
+                               tint: pauseTint)
                 }
             case .paused:
                 if let btn = presentation.paused?.resumeButton {
                     ButtonView(config: btn,
                                intent: ResumeIntent(alarmID: state.alarmID.uuidString),
-                               tint: .green)
+                               tint: resumeTint)
+                }
+            case .alert:
+                // Countdown alarms expose a secondary "repeat" button in the
+                // alert state; restart the countdown when it's tapped.
+                if let btn = presentation.alert.secondaryButton {
+                    ButtonView(config: btn,
+                               intent: RepeatIntent(alarmID: state.alarmID.uuidString),
+                               tint: repeatTint)
                 }
             default:
                 EmptyView()
@@ -173,7 +229,7 @@ struct AlarmControls: View {
             // Always show the stop button
             ButtonView(config: presentation.alert.stopButton,
                        intent: StopIntent(alarmID: state.alarmID.uuidString),
-                       tint: .red)
+                       tint: stopTint)
         }
     }
 }
@@ -187,6 +243,7 @@ struct ButtonView<I: AppIntent>: View {
     var body: some View {
         Button(intent: intent) {
             Label(config.text, systemImage: config.systemImageName)
+                .foregroundColor(config.textColor)
                 .lineLimit(1)
         }
         .buttonStyle(.borderedProminent)

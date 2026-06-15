@@ -1,4 +1,4 @@
 import AlarmKit
 
 @available(iOS 26.0, *)
-struct NeverMetadata: AlarmMetadata {}
+struct NeverMetadata: AlarmMetadata, Codable, Hashable {}
