@@ -10,6 +10,9 @@
 * Native hardening: reply to method calls on the platform thread, fix the alarm-updates stream handler (cancel on re-listen, no cross-thread shared state), and remove dead widget/extension code.
 * Register the plugin without an availability gate so iOS < 26 fails calls gracefully with `UNSUPPORTED_VERSION` instead of risking a launch-time trap (the iOS 26 implementation now lives in `AlarmkitPluginImpl`, reached through a runtime `#available` check). This makes the documented "iOS 26.0+ required" behavior real.
 * Setup-CLI robustness: Podfile/AppDelegate/entitlements patching now handles extra `do`/`end` blocks, trailing extensions, and self-closed `<array/>`; `--doctor` no longer fails on intentionally-customized widget files.
+* Render the configured `repeatButton` in the Live Activity's alert state (it was wired into scheduling but never drawn), with its own tint plumbed through the App Group.
+* Ship the example app's App Group in both entitlements files so custom tint colors actually apply when running the example.
+* On iOS < 26, fail the `alarmUpdates()` stream with `UNSUPPORTED_VERSION` too (previously only method calls were handled).
 
 ## 0.0.10
 * Add `getAuthorizationState` method.

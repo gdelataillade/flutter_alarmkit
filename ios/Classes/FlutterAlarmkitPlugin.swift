@@ -30,7 +30,37 @@ public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
           )
         )
       }
+
+      // Also fail the alarm-updates stream with the same error, so listening to
+      // FlutterAlarmkit().alarmUpdates() on iOS < 26 surfaces UNSUPPORTED_VERSION
+      // rather than a missing-handler error.
+      let eventChannel = FlutterEventChannel(
+        name: "flutter_alarmkit/events",
+        binaryMessenger: registrar.messenger()
+      )
+      eventChannel.setStreamHandler(UnsupportedVersionStreamHandler())
     }
+  }
+}
+
+/// Stream handler used on iOS < 26: fails every listen with `UNSUPPORTED_VERSION`
+/// so the alarm-updates stream matches the method channel's behavior. Kept
+/// outside the `@available` implementation so it is safe to instantiate on any
+/// iOS version.
+private class UnsupportedVersionStreamHandler: NSObject, FlutterStreamHandler {
+  func onListen(
+    withArguments arguments: Any?,
+    eventSink events: @escaping FlutterEventSink
+  ) -> FlutterError? {
+    return FlutterError(
+      code: "UNSUPPORTED_VERSION",
+      message: "AlarmKit is only available on iOS 26.0 and above",
+      details: nil
+    )
+  }
+
+  func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    return nil
   }
 }
 
@@ -188,7 +218,7 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     return ButtonConfig(text: text, textColor: textColor, systemImageName: icon, tintColor: tintColor)
   }
 
-  private func storeButtonTints(alarmId: String, stop: ButtonConfig, pause: ButtonConfig? = nil, resume: ButtonConfig? = nil) {
+  private func storeButtonTints(alarmId: String, stop: ButtonConfig, pause: ButtonConfig? = nil, resume: ButtonConfig? = nil, repeatButton: ButtonConfig? = nil) {
     guard let defaults = UserDefaults(suiteName: AlarmkitPluginImpl.appGroupId) else {
       NSLog("⚠️ Could not access App Group UserDefaults (\(AlarmkitPluginImpl.appGroupId)). Button tint colors will use defaults.")
       return
@@ -201,6 +231,9 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     }
     if let resume = resume {
       tints["resumeTint"] = resume.tintHexString
+    }
+    if let repeatButton = repeatButton {
+      tints["repeatTint"] = repeatButton.tintHexString
     }
     defaults.set(tints, forKey: "alarm_tints_\(alarmId)")
   }
@@ -583,7 +616,8 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
         alarmId: alarm.id.uuidString,
         stop: stopConfig,
         pause: pauseConfig,
-        resume: resumeConfig
+        resume: resumeConfig,
+        repeatButton: repeatConfig
       )
       result(alarm.id.uuidString)
     } catch {
