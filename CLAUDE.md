@@ -13,11 +13,11 @@ Flutter plugin wrapping Apple's AlarmKit (iOS 26+): schedule one-shot, countdown
 ## Load-bearing values (change all together or not at all)
 
 - App Group `group.flutter-alarmkit`: hardcoded in `ios/flutter_alarmkit/Sources/flutter_alarmkit/FlutterAlarmkitPlugin.swift`, `ios/WidgetTemplates/AlarmkitWidgetLiveActivity.swift`, `bin/setup.dart` (`kAppGroupId`), and the docs/entitlements.
-- Target/folder names `AlarmkitWidget` → `AlarmkitWidgetExtension`: referenced by the Podfile snippet in `bin/setup.dart`, the doctor checks, and `InstallationSteps.md`.
+- Target/folder names `AlarmkitWidget` → `AlarmkitWidgetExtension`: referenced by the doctor checks in `bin/setup.dart` and `InstallationSteps.md`.
 
 ## Consumer setup model (what the CLI/docs encode)
 
-Order matters: `flutter pub add` → create the `AlarmkitWidget` Widget Extension target in Xcode (GUI-only) → `dart run flutter_alarmkit:setup` → App Groups capability on both targets (GUI-only) → `pod install` → `flutter run --release`. Target creation must precede setup because Xcode 16+ creates the target as a filesystem-synchronized folder and clobbers whatever is in `ios/AlarmkitWidget/`; setup run afterwards restores the templates and repairs two Xcode-26 side effects:
+Order matters: `flutter pub add` → create the `AlarmkitWidget` Widget Extension target in Xcode (GUI-only) → `dart run flutter_alarmkit:setup` → App Groups capability on both targets (GUI-only) → `pod install` (CocoaPods apps only) → `flutter run --release`. Target creation must precede setup because Xcode 16+ creates the target as a filesystem-synchronized folder and clobbers whatever is in `ios/AlarmkitWidget/`; setup run afterwards restores the templates and repairs two Xcode-26 side effects:
 
 | Error | Cause | Fix in CLI |
 |---|---|---|
@@ -31,4 +31,4 @@ Never create Xcode targets or add capabilities by editing `project.pbxproj` — 
 - `flutter analyze` must be clean (strict lints incl. `public_member_api_docs`, `always_use_package_imports`).
 - No unit tests; verification is manual on an iOS 26 device via the example app (`example/`), which has buttons exercising every feature — "Custom UI Alarm (15s)" covers all `AlarmUIConfig` fields.
 - Test setup-CLI changes against a throwaway `flutter create` project with the plugin as a path dependency; `dart run flutter_alarmkit:setup --doctor` must pass all checks on the example app and on a correctly configured consumer.
-- Supports both Swift Package Manager (`ios/flutter_alarmkit/Package.swift`) and CocoaPods (`ios/flutter_alarmkit.podspec`); both build the same sources under `ios/flutter_alarmkit/Sources/flutter_alarmkit/` and must stay in sync (source path, iOS platform floor, bundled `PrivacyInfo.xcprivacy`). The Widget Extension setup is still CocoaPods-based (the widget doesn't import the plugin module — it only reads the shared App Group).
+- Supports both Swift Package Manager (`ios/flutter_alarmkit/Package.swift`) and CocoaPods (`ios/flutter_alarmkit.podspec`); both build the same sources under `ios/flutter_alarmkit/Sources/flutter_alarmkit/` and must stay in sync (source path, iOS platform floor, bundled `PrivacyInfo.xcprivacy`). The Widget Extension is a standalone WidgetKit target (its own metadata + intents, no plugin import), so it needs no `Podfile` entry and the setup works end to end under both SPM and CocoaPods.

@@ -53,7 +53,6 @@ void main(List<String> args) {
 
   _patchInfoPlist(projectRoot);
   _patchAppDelegate(projectRoot);
-  _patchPodfile(projectRoot);
   _syncWidgetTemplates(projectRoot, force: force);
   _createEntitlements(projectRoot);
   _patchProjectObjectVersion(projectRoot);
@@ -274,62 +273,7 @@ void _patchAppDelegate(Directory projectRoot) {
 }
 
 // ---------------------------------------------------------------------------
-// 3. Patch Podfile
-// ---------------------------------------------------------------------------
-
-void _patchPodfile(Directory projectRoot) {
-  final filePath = '${projectRoot.path}/ios/Podfile';
-  final file = File(filePath);
-  if (!file.existsSync()) {
-    print('[SKIP] Podfile not found');
-    return;
-  }
-
-  var content = file.readAsStringSync();
-
-  if (RegExp(
-    r'''^\s*target\s+['"]AlarmkitWidgetExtension['"]\s+do\b''',
-    multiLine: true,
-  ).hasMatch(content)) {
-    print('[OK]   Podfile already contains AlarmkitWidgetExtension target');
-    return;
-  }
-
-  const snippet = '''
-
-  target 'AlarmkitWidgetExtension' do
-    inherit! :search_paths
-    use_frameworks!
-    pod 'flutter_alarmkit', :path => '.symlinks/plugins/flutter_alarmkit/ios'
-  end
-''';
-
-  final runnerMatch = RegExp(
-    r'''^\s*target\s+['"]Runner['"]\s+do\b''',
-    multiLine: true,
-  ).firstMatch(content);
-  if (runnerMatch == null) {
-    print(
-      '[WARN] Could not find Runner target in Podfile. Manual edit needed.',
-    );
-    return;
-  }
-
-  // Insert the extension target as a nested block immediately inside the
-  // Runner target, right after `target 'Runner' do`. Inserting here avoids
-  // fragile matching-`end` detection that breaks when the Runner target
-  // contains other do/end blocks (pre_install, post_install, `.each do`, ...).
-  // CocoaPods supports nested targets, and `inherit! :search_paths` already
-  // targets the parent.
-  final insertAt = runnerMatch.end;
-  content =
-      '${content.substring(0, insertAt)}$snippet${content.substring(insertAt)}';
-  file.writeAsStringSync(content);
-  print('[DONE] Podfile patched with AlarmkitWidgetExtension target');
-}
-
-// ---------------------------------------------------------------------------
-// 4. Sync widget template files (self-healing)
+// 3. Sync widget template files (self-healing)
 // ---------------------------------------------------------------------------
 //
 // Xcode 16+ creates the Widget Extension target as a filesystem-synchronized
@@ -455,7 +399,7 @@ Directory? _findPluginDirectory(Directory projectRoot) {
 }
 
 // ---------------------------------------------------------------------------
-// 5. Create App Group entitlements
+// 4. Create App Group entitlements
 // ---------------------------------------------------------------------------
 
 void _createEntitlements(Directory projectRoot) {
@@ -547,7 +491,7 @@ void _createEntitlements(Directory projectRoot) {
 }
 
 // ---------------------------------------------------------------------------
-// 6. Patch project format version (objectVersion)
+// 5. Patch project format version (objectVersion)
 // ---------------------------------------------------------------------------
 //
 // Creating the widget target in Xcode 16.3+/26 silently upgrades the project
@@ -589,7 +533,7 @@ void _patchProjectObjectVersion(Directory projectRoot) {
 }
 
 // ---------------------------------------------------------------------------
-// 7. Fix Runner build-phase order
+// 6. Fix Runner build-phase order
 // ---------------------------------------------------------------------------
 //
 // Xcode appends "Embed Foundation Extensions" (and CocoaPods appends
@@ -697,6 +641,11 @@ bool _widgetTargetExists(Directory projectRoot) {
   return file.readAsStringSync().contains('AlarmkitWidgetExtension.appex');
 }
 
+/// Whether the consumer app uses CocoaPods (a Podfile is present). Apps using
+/// Swift Package Manager have no Podfile and skip `pod install`.
+bool _usesCocoaPods(Directory projectRoot) =>
+    File('${projectRoot.path}/ios/Podfile').existsSync();
+
 void _printNextSteps(Directory projectRoot) {
   print('');
   if (!_widgetTargetExists(projectRoot)) {
@@ -714,8 +663,10 @@ void _printNextSteps(Directory projectRoot) {
     print('      overwrite the widget files and upgrade the project format.');
     print('      Running setup LAST, with Xcode closed, restores the files');
     print('      and keeps the format CocoaPods can parse.)');
-    print('  5. With Xcode closed:');
-    print('     cd ios && pod install && cd ..');
+    print('  5. Build and run (with Xcode closed):');
+    if (_usesCocoaPods(projectRoot)) {
+      print('     cd ios && pod install && cd ..');
+    }
     print('     flutter run --release');
   } else {
     print('Remaining steps:');
@@ -726,11 +677,13 @@ void _printNextSteps(Directory projectRoot) {
     print('     Then QUIT Xcode and run "dart run flutter_alarmkit:setup" once');
     print('     more — adding the capability makes Xcode re-upgrade the');
     print('     project format, which the re-run fixes. (Skip if already done.)');
-    print('  2. With Xcode closed:');
-    print('     cd ios && pod install && cd ..');
+    print('  2. Build and run (with Xcode closed):');
+    if (_usesCocoaPods(projectRoot)) {
+      print('     cd ios && pod install && cd ..');
+    }
     print('     flutter run --release');
     print('     (If the build fails with "Cycle inside Runner", run this setup');
-    print('      once more — pod install can reorder a build phase — then build.)');
+    print('      once more, then build again.)');
   }
   print('');
   print('Verify your setup anytime with:');
@@ -795,20 +748,7 @@ int _runDoctor(Directory projectRoot) {
     }
   }
 
-  // 3. Podfile
-  final podfile = File('${projectRoot.path}/ios/Podfile');
-  if (!podfile.existsSync()) {
-    fail('ios/Podfile not found', rerunHint);
-  } else if (RegExp(
-    r'''^\s*target\s+['"]AlarmkitWidgetExtension['"]\s+do\b''',
-    multiLine: true,
-  ).hasMatch(podfile.readAsStringSync())) {
-    pass('Podfile contains the AlarmkitWidgetExtension target');
-  } else {
-    fail('Podfile is missing the AlarmkitWidgetExtension target', rerunHint);
-  }
-
-  // 4. Widget Extension target in Xcode project
+  // 3. Widget Extension target in Xcode project
   if (_widgetTargetExists(projectRoot)) {
     pass('Widget Extension target exists in Runner.xcodeproj');
   } else {
@@ -820,7 +760,7 @@ int _runDoctor(Directory projectRoot) {
     );
   }
 
-  // 5. Widget templates in sync
+  // 4. Widget templates in sync
   final pluginDir = _findPluginDirectory(projectRoot);
   if (pluginDir == null) {
     warn(
@@ -894,7 +834,7 @@ int _runDoctor(Directory projectRoot) {
     }
   }
 
-  // 6. Runner entitlements
+  // 5. Runner entitlements
   final runnerEntitlements =
       File('${projectRoot.path}/ios/Runner/Runner.entitlements');
   if (runnerEntitlements.existsSync() &&
@@ -907,7 +847,7 @@ int _runDoctor(Directory projectRoot) {
     );
   }
 
-  // 7. Widget extension entitlements (created by Xcode when the App Groups
+  // 6. Widget extension entitlements (created by Xcode when the App Groups
   //    capability is added to the extension target)
   final extensionEntitlements = _findExtensionEntitlements(projectRoot);
   if (extensionEntitlements != null &&
@@ -925,7 +865,7 @@ int _runDoctor(Directory projectRoot) {
     );
   }
 
-  // 8. Project format parseable by CocoaPods
+  // 7. Project format parseable by CocoaPods
   final pbxprojFile = File(_pbxprojPath(projectRoot));
   if (pbxprojFile.existsSync()) {
     final pbxproj = pbxprojFile.readAsStringSync();
@@ -947,7 +887,7 @@ int _runDoctor(Directory projectRoot) {
       pass('Project format (objectVersion = $version) is CocoaPods-compatible');
     }
 
-    // 9. Build phase order
+    // 8. Build phase order
     if (_reorderBuildPhases(pbxproj) == null) {
       pass('Runner build phases are ordered (embed phases before Thin Binary)');
     } else {
@@ -963,7 +903,9 @@ int _runDoctor(Directory projectRoot) {
   print('');
   if (failures == 0 && warnings == 0) {
     print('All checks passed. You are ready to build:');
-    print('  cd ios && pod install && cd ..');
+    if (_usesCocoaPods(projectRoot)) {
+      print('  cd ios && pod install && cd ..');
+    }
     print('  flutter run --release');
   } else {
     print(
