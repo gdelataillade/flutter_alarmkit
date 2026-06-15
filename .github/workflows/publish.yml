@@ -1,0 +1,33 @@
+name: Publish to pub.dev
+
+# Publishes the package to pub.dev when a version tag (e.g. v0.1.0) is pushed.
+#
+# Prerequisite (one-time): enable automated publishing for this package on
+# pub.dev — Admin tab > "Automated publishing" > enable publishing from GitHub
+# Actions, set the repository to "gdelataillade/flutter_alarmkit" and the tag
+# pattern to "v{{version}}". Authentication then uses GitHub OIDC, so no tokens
+# or secrets need to be stored.
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # required for OIDC authentication with pub.dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Publish
+        run: dart pub publish --force
