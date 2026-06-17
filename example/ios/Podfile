@@ -30,13 +30,9 @@ flutter_ios_podfile_setup
 target 'Runner' do
   use_frameworks!
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-
-  target 'AlarmkitWidgetExtension' do
-    inherit! :search_paths
-    use_frameworks!
-    pod 'flutter_alarmkit', :path => '.symlinks/plugins/flutter_alarmkit/ios'
-  end
-
+  # The AlarmkitWidgetExtension target needs no pod: the widget is a standalone
+  # WidgetKit extension (it does not import the plugin module), so it is left out
+  # of the Podfile and works under both CocoaPods and Swift Package Manager.
 end
 
 post_install do |installer|

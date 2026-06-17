@@ -24,10 +24,10 @@ These values are load-bearing — the plugin's code and setup tooling reference 
 
 | What | Value | Why |
 |---|---|---|
-| Widget Extension name (in the Xcode wizard) | `AlarmkitWidget` | Xcode derives the target `AlarmkitWidgetExtension` and the folder `ios/AlarmkitWidget/` from it; the Podfile block and entitlements reference the derived name |
+| Widget Extension name (in the Xcode wizard) | `AlarmkitWidget` | Xcode derives the target `AlarmkitWidgetExtension` and the folder `ios/AlarmkitWidget/` from it; the entitlements and setup checks reference the derived name |
 | App Group | `group.flutter-alarmkit` | Hardcoded in the plugin's Swift code; used to pass custom button colors to the widget via shared `UserDefaults` |
 | Minimum runtime | iOS 26.0 device | AlarmKit is an iOS 26 framework (the app itself may target lower iOS versions and gate alarm features at runtime) |
-| Toolchain | Xcode 26+, CocoaPods | Swift Package Manager is not supported yet |
+| Toolchain | Xcode 26+ | Works with both Swift Package Manager and CocoaPods — the Widget Extension needs no `Podfile` changes |
 
 Only two steps require the Xcode GUI (marked 🖐 below): creating the Widget Extension target and adding the App Groups capability. Everything else is automated by the setup CLI and verifiable with `dart run flutter_alarmkit:setup --doctor`.
 
@@ -62,11 +62,11 @@ While you're still in Xcode, for **both** the Runner and AlarmkitWidgetExtension
 
 This is required for custom button tint colors to work in the Live Activity. Adding the capability also wires the entitlements files into the build settings automatically.
 
-> **Do all your Xcode work now** (steps 2 and 3). The setup command in step 4 must be the *last* thing to touch the project before `pod install` — see the note there for why.
+> **Do all your Xcode work now** (steps 2 and 3). The setup command in step 4 must be the *last* thing to touch the project before you build — see the note there for why.
 
 ### 4. Quit Xcode, then run the setup command
 
-**Quit Xcode first (⌘Q).** This matters: Xcode 26 re-upgrades the project format (`objectVersion`) every time it saves the project — including when you create the target or add the App Groups capability — and CocoaPods can't parse the upgraded format. Running setup *after* all Xcode work, with Xcode closed, makes its fixes the last thing to touch the project, so they survive into `pod install`.
+**Quit Xcode first (⌘Q).** This matters: Xcode 26 re-upgrades the project format and re-orders build phases every time it saves the project — including when you create the target or add the App Groups capability. Running setup *after* all Xcode work, with Xcode closed, makes its fixes the last thing to touch the project, so they survive into the build. (The project-format downgrade only matters if you use CocoaPods; the build-phase fix matters either way.)
 
 ```bash
 dart run flutter_alarmkit:setup
@@ -76,7 +76,6 @@ This automatically:
 
 - Patches `Info.plist` with the required AlarmKit keys
 - Patches `AppDelegate.swift` with `FlutterImplicitEngineDelegate`
-- Patches `Podfile` with the widget extension target
 - Writes the plugin's widget files into `ios/AlarmkitWidget/` (replacing the placeholders Xcode created with the target, and removing its extra generated files)
 - Ensures `Runner.entitlements` contains the App Group
 - Downgrades the project format if Xcode upgraded it to one CocoaPods can't parse yet (`objectVersion` 70/77 → 60, [CocoaPods #12840](https://github.com/CocoaPods/CocoaPods/issues/12840))
@@ -86,17 +85,17 @@ The command is idempotent and self-healing — re-run it any time something look
 
 ### 5. Build and run
 
-With Xcode still closed:
+With Xcode still closed (run `pod install` only if your app uses CocoaPods — skip it on Swift Package Manager):
 
 ```bash
-cd ios && pod install && cd ..
+cd ios && pod install && cd ..   # CocoaPods only
 dart run flutter_alarmkit:setup --doctor
 flutter run --release
 ```
 
-`dart run flutter_alarmkit:setup --doctor` is a read-only check of every step above — it should report **all green**. If it flags **"Embed phases run after Thin Binary"** (`pod install` can append a build phase in the wrong spot), run `dart run flutter_alarmkit:setup` once more to reorder them, then `flutter run --release`. (Paste the doctor output when filing an issue.)
+`dart run flutter_alarmkit:setup --doctor` is a read-only check of every step above — it should report **all green**. If it flags **"Embed phases run after Thin Binary"** (creating the widget target or `pod install` can append a build phase in the wrong spot), run `dart run flutter_alarmkit:setup` once more to reorder them, then `flutter run --release`. (Paste the doctor output when filing an issue.)
 
-If the build fails with `Cycle inside Runner`, run `dart run flutter_alarmkit:setup` once more (`pod install` can append a build phase in the wrong position on its first run), then build again.
+If the build fails with `Cycle inside Runner`, run `dart run flutter_alarmkit:setup` once more (creating the widget target or `pod install` can append a build phase in the wrong position), then build again.
 
 ---
 
@@ -189,27 +188,9 @@ With Xcode 16+ the extension folder is filesystem-synchronized: editing files on
 
 ---
 
-### 5. Update Podfile
+### 5. Podfile — no changes needed
 
-Open `ios/Podfile` and make sure it contains:
-
-```ruby
-target 'Runner' do
-  use_frameworks!
-  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-
-  # Add this block
-  target 'AlarmkitWidgetExtension' do
-    inherit! :search_paths
-    use_frameworks!
-    pod 'flutter_alarmkit', :path => '.symlinks/plugins/flutter_alarmkit/ios'
-  end
-end
-```
-
-Optional: `pod install` warns "Automatically assigning platform iOS 13.0" when the Podfile's `platform :ios` line is commented out. You can uncomment it and set the minimum iOS your app supports to silence the warning (AlarmKit features need an iOS 26 device at runtime either way).
-
-Here's the example app's [Podfile](https://github.com/gdelataillade/flutter_alarmkit/blob/main/example/ios/Podfile).
+The Widget Extension is a standalone WidgetKit target with no plugin dependency, so it needs no `Podfile` entry. If your app uses CocoaPods, the standard Flutter `Podfile` is enough — run `pod install` as usual. If your app uses Swift Package Manager, you don't need a `Podfile` at all.
 
 ### 6. Update AppDelegate.swift
 
@@ -274,7 +255,7 @@ Xcode appends the extension's embed phase **after** Flutter's `Thin Binary` phas
 flutter clean
 flutter pub get
 cd ios
-pod install
+pod install   # CocoaPods only — skip on Swift Package Manager
 cd ..
 flutter run --release
 ```

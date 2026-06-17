@@ -36,7 +36,7 @@ dart run flutter_alarmkit:setup --doctor   # verifies every step
 
 > **Using Claude Code?** This repo includes a `flutter-alarmkit-setup` skill that drives the whole install for you. See [Using with Claude Code](InstallationSteps.md#using-with-claude-code-optional).
 
-> **Note:** the plugin currently supports CocoaPods only. Flutter prints a warning that `flutter_alarmkit` does not support Swift Package Manager — that's expected (SPM support is on the roadmap), not a problem with your setup.
+> **Note:** the plugin supports both Swift Package Manager and CocoaPods, and needs no `Podfile` changes. The Live Activity Widget Extension is a standalone WidgetKit target with no plugin dependency, so the setup is the same whichever dependency manager your app uses.
 
 ## Usage
 

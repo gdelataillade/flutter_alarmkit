@@ -27,8 +27,8 @@ hand off the two steps that genuinely require the Xcode GUI, and verify the resu
 `flutter_alarmkit` wraps Apple's AlarmKit (iOS 26+). Alarms present as Live
 Activities (Lock Screen + Dynamic Island), which requires a **Widget Extension**
 target alongside the app. Setting that up touches files Flutter usually hides:
-`Info.plist`, `AppDelegate.swift`, the `Podfile`, entitlements, the widget's Swift
-sources, and `project.pbxproj`.
+`Info.plist`, `AppDelegate.swift`, entitlements, the widget's Swift sources, and
+`project.pbxproj`.
 
 The plugin ships a CLI — `dart run flutter_alarmkit:setup` — that patches all of
 those, copies the widget sources, and repairs two Xcode-26 side effects that
@@ -55,8 +55,9 @@ confusing errors if missing:
 - **A physical iOS 26 device** (or iOS 26 simulator) — AlarmKit is iOS 26 only.
   The plugin builds against the iOS 26 SDK. Release mode (`flutter run --release`)
   is the reliable way to test alarms.
-- **CocoaPods** — the plugin does not support Swift Package Manager yet. Flutter
-  prints an SPM warning on `pub add`; that warning is expected, not an error.
+- **Dependency manager** — the plugin works with both Swift Package Manager and
+  CocoaPods, and the Widget Extension needs no `Podfile` entry either way. Run
+  `pod install` only if the app uses CocoaPods; skip it on Swift Package Manager.
 - You are at the **root of the Flutter app** that will consume the plugin (the
   directory with `pubspec.yaml` and an `ios/` folder).
 
@@ -78,7 +79,7 @@ flutter pub add flutter_alarmkit
 ```
 
 This also runs `flutter pub get`, which the setup CLI needs in order to locate the
-plugin. (The SPM warning here is expected — see above.)
+plugin.
 
 ### 2. 🖐 Create the Widget Extension target (Xcode GUI — hand off to the user)
 
@@ -96,7 +97,7 @@ filesystem-synchronized folder at `ios/AlarmkitWidget/` and overwrites whatever 
 there with placeholder sample code. Running setup *after* this lets it replace
 those placeholders with the plugin's real widget code. The exact name matters —
 Xcode derives the target `AlarmkitWidgetExtension` and the folder from it, and the
-Podfile and entitlements reference the derived name.
+entitlements and setup checks reference the derived name.
 
 It's fine if Xcode also generates extras like `AlarmkitWidgetControl.swift` or
 `AppIntent.swift`; the CLI removes them in the next step. The user does **not**
@@ -109,11 +110,11 @@ automatically.
 dart run flutter_alarmkit:setup
 ```
 
-This patches `Info.plist`, `AppDelegate.swift`, and the `Podfile`; writes the
-plugin's widget Swift files into `ios/AlarmkitWidget/` (replacing Xcode's
-placeholders, removing its extras); creates `Runner.entitlements` with the App
-Group; downgrades the project format if Xcode bumped it past what CocoaPods can
-read; and reorders the Runner build phases so release builds don't deadlock.
+This patches `Info.plist` and `AppDelegate.swift`; writes the plugin's widget
+Swift files into `ios/AlarmkitWidget/` (replacing Xcode's placeholders, removing
+its extras); creates `Runner.entitlements` with the App Group; downgrades the
+project format if Xcode bumped it past what CocoaPods can read; and reorders the
+Runner build phases so release builds don't deadlock.
 
 Read its output. Every line is prefixed: `[DONE]`/`[FIXED]` (it changed
 something), `[OK]` (already correct), `[SKIP]`/`[WARN]` (couldn't act — investigate).
@@ -156,13 +157,14 @@ step 4 isn't done yet on the extension target.
 ### 6. Build and run
 
 ```bash
-cd ios && pod install && cd ..
+cd ios && pod install && cd ..   # CocoaPods only — skip on Swift Package Manager
 flutter run --release
 ```
 
 If the build fails with `Cycle inside Runner`, run `dart run
-flutter_alarmkit:setup` once more and rebuild — `pod install`'s first run can
-re-append a build phase in the wrong spot, and setup re-fixes the order.
+flutter_alarmkit:setup` once more and rebuild — creating the widget target (or
+`pod install` on CocoaPods) can re-append a build phase in the wrong spot, and
+setup re-fixes the order.
 
 ## Troubleshooting
 
@@ -192,7 +194,7 @@ the `--doctor` output, plus Flutter/Xcode/iOS versions and device model.
   `project.pbxproj`.** Those need Xcode's GUI for signing and target membership.
   The only pbxproj edits that are safe to script are the two the CLI already does
   (the `objectVersion` downgrade and the build-phase reorder) — let it do them.
-- **Don't add `flutter_alarmkit` to the Runner target's pod list.** It belongs in
-  the `AlarmkitWidgetExtension` Podfile block, which the CLI writes.
-- **Don't treat the SPM warning as an error.** CocoaPods is the supported path
-  today; the warning is informational.
+- **The Widget Extension needs no `Podfile` entry.** It is a standalone WidgetKit
+  target with no plugin dependency, so the CLI doesn't touch the `Podfile` and none
+  is required. `pod install` is CocoaPods-only — run it only if the app has a
+  `Podfile`; on Swift Package Manager there is none.
