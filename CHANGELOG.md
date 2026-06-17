@@ -1,6 +1,6 @@
 ## 0.2.0
-* Add Swift Package Manager support alongside CocoaPods. iOS sources moved to `ios/flutter_alarmkit/Sources/flutter_alarmkit/` and a `Package.swift` was added, so Flutter no longer prints the "does not support Swift Package Manager" warning on `pub add`.
-* The Live Activity Widget Extension no longer requires CocoaPods — it is a standalone WidgetKit target with no plugin dependency. The setup CLI no longer patches the `Podfile`, and no `Podfile` is required, so the plugin works end to end under both Swift Package Manager and CocoaPods.
+* Add **Swift Package Manager** support alongside CocoaPods.
+* The Live Activity Widget Extension no longer requires CocoaPods — it is a standalone WidgetKit target with no plugin dependency.
 
 ## 0.1.0
 * Add per-alarm Live Activity UI customization via `AlarmUIConfig` / `AlarmButtonConfig` (button text, SF Symbol, colors, and countdown/paused titles).

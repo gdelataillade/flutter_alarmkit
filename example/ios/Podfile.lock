@@ -1,6 +1,6 @@
 PODS:
   - Flutter (1.0.0)
-  - flutter_alarmkit (0.0.1):
+  - flutter_alarmkit (0.2.0):
     - Flutter
   - integration_test (0.0.1):
     - Flutter
@@ -20,9 +20,9 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_alarmkit: fcec41c9c26868e0d9d01272e8d781fb876813ae
+  flutter_alarmkit: 0fa3e0a9bd0411a12383523494ac46de05d5a5f7
   integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
 
-PODFILE CHECKSUM: 0f051e46098b03e48debf6607139e0ec643bc6e1
+PODFILE CHECKSUM: 9e2597ddafd7524f488729ee3b2a668a53377ce2
 
 COCOAPODS: 1.16.2
