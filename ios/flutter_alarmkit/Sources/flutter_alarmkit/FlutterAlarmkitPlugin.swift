@@ -259,15 +259,25 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
   /// returned later — AlarmKit does not expose presentation back to the app.
   /// `createdAt` (epoch seconds) lets `getAlarms` prune orphans without racing
   /// an in-flight schedule.
-  private func storeAlarmMeta(alarmId: String, label: String, tintColorHex: String, createdAt: TimeInterval) {
+  private func storeAlarmMeta(alarmId: String, label: String, tintColorHex: String, createdAt: TimeInterval, metadata: NeverMetadata? = nil) {
     guard let defaults = UserDefaults(suiteName: AlarmkitPluginImpl.appGroupId) else {
       NSLog("⚠️ Could not access App Group UserDefaults (\(AlarmkitPluginImpl.appGroupId)). Alarm label/tint will be unavailable from getAlarms().")
       return
     }
-    defaults.set(
-      ["label": label, "tintColor": tintColorHex, "createdAt": createdAt],
-      forKey: "alarm_meta_\(alarmId)"
-    )
+    var stored: [String: Any] = [
+      "label": label,
+      "tintColor": tintColorHex,
+      "createdAt": createdAt,
+    ]
+    // Persist the displayable metadata as a nested dictionary so getAlarms()
+    // can return it (AlarmKit does not expose attributes after scheduling).
+    if let metadata = metadata {
+      var metaDict: [String: String] = [:]
+      if let icon = metadata.icon, !icon.isEmpty { metaDict["icon"] = icon }
+      if let subtitle = metadata.subtitle, !subtitle.isEmpty { metaDict["subtitle"] = subtitle }
+      if !metaDict.isEmpty { stored["metadata"] = metaDict }
+    }
+    defaults.set(stored, forKey: "alarm_meta_\(alarmId)")
   }
 
   /// Remove all persisted App Group state (meta + button tints) for an alarm.
@@ -420,6 +430,16 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     return args["soundPath"] as? String
   }
 
+  /// Parse the optional displayable metadata (icon + subtitle). Empty strings
+  /// are treated as absent; returns nil when no field is set.
+  private func parseMetadata(from args: [String: Any]) -> NeverMetadata? {
+    guard let dict = args["metadata"] as? [String: Any] else { return nil }
+    let icon = (dict["icon"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+    let subtitle = (dict["subtitle"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+    if icon == nil, subtitle == nil { return nil }
+    return NeverMetadata(icon: icon, subtitle: subtitle)
+  }
+
   private func resolveSoundAsset(_ assetPath: String?) -> AlertConfiguration.AlertSound {
     guard let assetPath = assetPath, !assetPath.isEmpty else {
       return .default
@@ -546,8 +566,10 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
 
     let presentation = AlarmPresentation(alert: alertContent)
 
+    let metadata = parseMetadata(from: args)
     let attributes = AlarmAttributes<NeverMetadata>(
       presentation: presentation,
+      metadata: metadata,
       tintColor: tintColor
     )
 
@@ -579,7 +601,8 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       alarmId: id.uuidString,
       label: label,
       tintColorHex: hexString(from: tintColor),
-      createdAt: Date().timeIntervalSince1970
+      createdAt: Date().timeIntervalSince1970,
+      metadata: metadata
     )
     storeButtonTints(alarmId: id.uuidString, stop: stopConfig, openApp: openConfig)
 
@@ -684,8 +707,10 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       )
     )
     let tintColor = parseTintColor(from: args)
+    let metadata = parseMetadata(from: args)
     let attributes = AlarmAttributes<NeverMetadata>(
       presentation: presentation,
+      metadata: metadata,
       tintColor: tintColor
     )
     let soundPath = parseSoundPath(from: args)
@@ -701,7 +726,8 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       alarmId: id.uuidString,
       label: label,
       tintColorHex: hexString(from: tintColor),
-      createdAt: Date().timeIntervalSince1970
+      createdAt: Date().timeIntervalSince1970,
+      metadata: metadata
     )
     storeButtonTints(
       alarmId: id.uuidString,
@@ -829,8 +855,10 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     }
     let presentation = AlarmPresentation(alert: alertContent)
     let tintColor = parseTintColor(from: args)
+    let metadata = parseMetadata(from: args)
     let attributes = AlarmAttributes<NeverMetadata>(
       presentation: presentation,
+      metadata: metadata,
       tintColor: tintColor
     )
 
@@ -858,7 +886,8 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       alarmId: id.uuidString,
       label: label,
       tintColorHex: hexString(from: tintColor),
-      createdAt: Date().timeIntervalSince1970
+      createdAt: Date().timeIntervalSince1970,
+      metadata: metadata
     )
     storeButtonTints(alarmId: id.uuidString, stop: stopConfig, openApp: openConfig)
 

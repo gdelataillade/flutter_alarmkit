@@ -74,6 +74,9 @@ extension Alarm {
           if let tintColor = meta["tintColor"] as? String {
               dict["tintColor"] = tintColor
           }
+          if let metadata = meta["metadata"] as? [String: Any], !metadata.isEmpty {
+              dict["metadata"] = metadata
+          }
       }
 
       return dict

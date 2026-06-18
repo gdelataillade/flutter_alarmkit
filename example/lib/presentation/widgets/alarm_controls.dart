@@ -129,6 +129,28 @@ class AlarmControls extends StatelessWidget {
             ElevatedButton(
               onPressed: state.authStatus == 'Granted'
                   ? () async {
+                      final plugin = FlutterAlarmkit();
+                      final id = await plugin.scheduleOneShotAlarm(
+                        timestamp: DateTime.now()
+                            .add(const Duration(seconds: 5))
+                            .millisecondsSinceEpoch
+                            .toDouble(),
+                        label: 'Medication',
+                        tintColor: '#FF2D55',
+                        metadata: const AlarmMetadata(
+                          icon: 'pills.fill',
+                          subtitle: 'Take 2 tablets',
+                        ),
+                      );
+                      debugPrint('Metadata alarm ID: $id');
+                    }
+                  : null,
+              child: const Text('Metadata Alarm (5s)'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: state.authStatus == 'Granted'
+                  ? () async {
                       final fireAt =
                           DateTime.now().add(const Duration(minutes: 1));
                       await FlutterAlarmkit().scheduleRecurrentAlarm(

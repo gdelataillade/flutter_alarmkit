@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_alarmkit/src/alarm_metadata.dart';
 import 'package:flutter_alarmkit/src/weekday.dart';
 
 /// The lifecycle state of an alarm, mirroring AlarmKit's `Alarm.State`.
@@ -201,6 +202,10 @@ class Alarm {
   /// persisted one.
   final String? tintColor;
 
+  /// Displayable metadata (icon + subtitle) attached at schedule time, if the
+  /// plugin persisted any.
+  final AlarmMetadata? metadata;
+
   /// Creates an [Alarm] snapshot.
   const Alarm({
     required this.id,
@@ -209,6 +214,7 @@ class Alarm {
     this.countdownDuration,
     this.label,
     this.tintColor,
+    this.metadata,
   });
 
   /// Builds an [Alarm] from a platform-channel map.
@@ -226,6 +232,10 @@ class Alarm {
       }(),
       label: map['label'] as String?,
       tintColor: map['tintColor'] as String?,
+      metadata: () {
+        final m = _asStringMap(map['metadata']);
+        return m == null ? null : AlarmMetadata.fromMap(m);
+      }(),
     );
   }
 
@@ -273,14 +283,22 @@ class Alarm {
           other.schedule == schedule &&
           other.countdownDuration == countdownDuration &&
           other.label == label &&
-          other.tintColor == tintColor;
+          other.tintColor == tintColor &&
+          other.metadata == metadata;
 
   @override
-  int get hashCode =>
-      Object.hash(id, state, schedule, countdownDuration, label, tintColor);
+  int get hashCode => Object.hash(
+        id,
+        state,
+        schedule,
+        countdownDuration,
+        label,
+        tintColor,
+        metadata,
+      );
 
   @override
   String toString() => 'Alarm(id: $id, state: $state, schedule: $schedule, '
       'countdownDuration: $countdownDuration, label: $label, '
-      'tintColor: $tintColor)';
+      'tintColor: $tintColor, metadata: $metadata)';
 }

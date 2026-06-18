@@ -1,3 +1,6 @@
+## 0.5.0
+* Add **custom alarm metadata**: attach a displayable SF Symbol `icon` and a `subtitle` to any alarm via the new `metadata:` parameter (`AlarmMetadata`) on the schedule methods. The Live Activity renders them alongside the title, and `getAlarms()` / `alarmUpdates()` return the metadata.
+
 ## 0.4.0
 * Add an **"Open app" secondary button** for one-shot and recurrent alarms via `AlarmUIConfig.openAppButton` — the alert shows Open + Stop, and tapping Open foregrounds the app (and stops the alarm).
 * `scheduleRecurrentAlarm` now accepts an **empty `weekdays` set** to fire once at the next occurrence of the given time without repeating, plus a new `Weekday.everyday` convenience for daily alarms.

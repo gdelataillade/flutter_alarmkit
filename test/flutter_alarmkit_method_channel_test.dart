@@ -126,4 +126,25 @@ void main() {
       ),
     );
   });
+
+  test('schedule forwards the metadata map into the call arguments', () async {
+    Map<dynamic, dynamic>? captured;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'scheduleOneShotAlarm') {
+        captured = call.arguments as Map?;
+        return 'id-1';
+      }
+      return null;
+    });
+
+    await platform.scheduleOneShotAlarm(
+      timestamp: 0,
+      metadata: {'icon': 'bell'},
+    );
+    expect((captured?['metadata'] as Map?)?['icon'], 'bell');
+
+    captured = null;
+    await platform.scheduleOneShotAlarm(timestamp: 0);
+    expect(captured?.containsKey('metadata'), isFalse);
+  });
 }

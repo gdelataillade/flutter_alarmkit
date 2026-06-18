@@ -14,6 +14,7 @@ Flutter plugin wrapping Apple's AlarmKit (iOS 26+): schedule one-shot, countdown
 
 - App Group `group.flutter-alarmkit`: hardcoded in `ios/flutter_alarmkit/Sources/flutter_alarmkit/FlutterAlarmkitPlugin.swift`, `ios/WidgetTemplates/AlarmkitWidgetLiveActivity.swift`, `bin/setup.dart` (`kAppGroupId`), and the docs/entitlements.
 - Target/folder names `AlarmkitWidget` → `AlarmkitWidgetExtension`: referenced by the doctor checks in `bin/setup.dart` and `InstallationSteps.md`.
+- `NeverMetadata` stored-property set (the `AlarmMetadata` payload): defined in `ios/flutter_alarmkit/Sources/flutter_alarmkit/NeverMetadata.swift` (internal) and inline in `ios/WidgetTemplates/AlarmkitWidgetLiveActivity.swift` + `example/ios/AlarmkitWidget/AlarmkitWidgetLiveActivity.swift` (public). The fields must match across all three or AlarmKit's encode (plugin) ↔ decode (widget) won't round-trip; the two widget copies also stay byte-identical. The name is kept (not "AlarmMetadata") to preserve the `AlarmAttributes<NeverMetadata>` Live Activity type identity.
 
 ## Consumer setup model (what the CLI/docs encode)
 

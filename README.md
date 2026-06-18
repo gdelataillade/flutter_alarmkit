@@ -24,6 +24,7 @@ See more: https://developer.apple.com/documentation/alarmkit
 - Query the typed authorization state (`getAuthorizationState`)
 - Set custom alarm sounds
 - Customize the Live Activity UI (buttons, icons, colors, titles), including an "Open app" button
+- Attach a displayable icon + subtitle to an alarm (`AlarmMetadata`)
 - Cancel a single alarm, or all alarms at once (`cancelAll`)
 - Stop alarms
 
@@ -216,6 +217,20 @@ await FlutterAlarmkit().scheduleOneShotAlarm(
   ),
 );
 ```
+
+### Attach metadata
+
+Attach a displayable SF Symbol `icon` and a `subtitle` to an alarm with `metadata` (available on every schedule method). The Live Activity renders them alongside the title, and they're returned by `getAlarms()`:
+
+```dart
+await FlutterAlarmkit().scheduleOneShotAlarm(
+  timestamp: fireDate.millisecondsSinceEpoch.toDouble(),
+  label: 'Medication',
+  metadata: const AlarmMetadata(icon: 'pills.fill', subtitle: 'Take 2 tablets'),
+);
+```
+
+The default widget renders the icon and subtitle; you can change *how* they render by editing your generated `AlarmkitWidget` sources. Adding entirely new metadata fields also requires changing the plugin's Swift struct.
 
 ### Cancel an Alarm
 

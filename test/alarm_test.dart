@@ -194,4 +194,33 @@ void main() {
       expect(scheduled, isNot(alerting));
     });
   });
+
+  group('Alarm.fromMap metadata', () {
+    test('parses a nested metadata map', () {
+      final alarm = Alarm.fromMap({
+        'id': 'A',
+        'state': 'scheduled',
+        'metadata': {'icon': 'pills.fill', 'subtitle': 'Take 2'},
+      });
+
+      expect(alarm.metadata, isNotNull);
+      expect(alarm.metadata!.icon, 'pills.fill');
+      expect(alarm.metadata!.subtitle, 'Take 2');
+    });
+
+    test('accepts a Map<Object?, Object?> nested metadata map', () {
+      final raw = <Object?, Object?>{
+        'id': 'A',
+        'state': 'scheduled',
+        'metadata': <Object?, Object?>{'icon': 'bell'},
+      };
+
+      final alarm = Alarm.fromMap(raw.cast<String, dynamic>());
+      expect(alarm.metadata!.icon, 'bell');
+    });
+
+    test('metadata is null when absent', () {
+      expect(Alarm.fromMap({'id': 'A', 'state': 'scheduled'}).metadata, isNull);
+    });
+  });
 }
