@@ -140,12 +140,12 @@ void main() {
 
   group('equality and hashing', () {
     test('weekday set equality is order-independent', () {
-      const a = RelativeAlarmSchedule(
+      final a = RelativeAlarmSchedule(
         hour: 7,
         minute: 0,
         weekdays: {Weekday.monday, Weekday.friday},
       );
-      const b = RelativeAlarmSchedule(
+      final b = RelativeAlarmSchedule(
         hour: 7,
         minute: 0,
         weekdays: {Weekday.friday, Weekday.monday},
@@ -153,6 +153,25 @@ void main() {
 
       expect(a, b);
       expect(a.hashCode, b.hashCode);
+    });
+
+    test('weekdays is unmodifiable and decoupled from the source set', () {
+      final source = {Weekday.monday};
+      final schedule = RelativeAlarmSchedule(
+        hour: 6,
+        minute: 0,
+        weekdays: source,
+      );
+
+      // Mutating the source after construction must not affect the schedule.
+      source.add(Weekday.tuesday);
+      expect(schedule.weekdays, {Weekday.monday});
+
+      // The stored set itself must reject mutation.
+      expect(
+        () => schedule.weekdays.add(Weekday.sunday),
+        throwsUnsupportedError,
+      );
     });
 
     test('Alarm value equality covers all fields', () {

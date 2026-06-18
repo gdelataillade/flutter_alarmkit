@@ -86,15 +86,19 @@ class RelativeAlarmSchedule extends AlarmSchedule {
   /// Minute of hour, 0–59.
   final int minute;
 
-  /// The weekdays the alarm repeats on. Empty means it does not repeat.
+  /// The weekdays the alarm repeats on (unmodifiable). Empty means it does not
+  /// repeat.
   final Set<Weekday> weekdays;
 
   /// Creates a relative schedule firing at [hour]:[minute] on [weekdays].
-  const RelativeAlarmSchedule({
+  ///
+  /// [weekdays] is copied into an unmodifiable set so the schedule stays
+  /// immutable — its value equality and hash code depend on it.
+  RelativeAlarmSchedule({
     required this.hour,
     required this.minute,
-    this.weekdays = const {},
-  });
+    Set<Weekday> weekdays = const {},
+  }) : weekdays = Set.unmodifiable(weekdays);
 
   @override
   bool operator ==(Object other) =>

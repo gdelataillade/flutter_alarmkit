@@ -831,13 +831,25 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     guard let defaults = UserDefaults(suiteName: AlarmkitPluginImpl.appGroupId) else { return }
     let graceSeconds: TimeInterval = 60
     let now = Date().timeIntervalSince1970
-    for (key, value) in defaults.dictionaryRepresentation() {
-      guard key.hasPrefix("alarm_meta_") else { continue }
-      let alarmId = String(key.dropFirst("alarm_meta_".count))
+    let all = defaults.dictionaryRepresentation()
+
+    // Collect candidate ids from both metadata and tint keys, so legacy
+    // `alarm_tints_*` entries written before metadata existed are also pruned.
+    var candidateIds = Set<String>()
+    for key in all.keys {
+      if key.hasPrefix("alarm_meta_") {
+        candidateIds.insert(String(key.dropFirst("alarm_meta_".count)))
+      } else if key.hasPrefix("alarm_tints_") {
+        candidateIds.insert(String(key.dropFirst("alarm_tints_".count)))
+      }
+    }
+
+    for alarmId in candidateIds {
       if liveIds.contains(alarmId) { continue }
-      // Keep entries still inside the grace window (covers in-flight schedules
-      // and metadata written without a createdAt by older plugin versions).
-      if let meta = value as? [String: Any],
+      // Keep entries still inside the grace window (covers in-flight schedules).
+      // Schedules always write metadata before tints, so a tints-only entry can
+      // only be a legacy alarm with no createdAt — safe to prune once orphaned.
+      if let meta = all["alarm_meta_\(alarmId)"] as? [String: Any],
          let createdAt = meta["createdAt"] as? TimeInterval,
          now - createdAt <= graceSeconds {
         continue
