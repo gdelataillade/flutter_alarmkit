@@ -1,6 +1,6 @@
 name: flutter_alarmkit
 description: "Flutter plugin for Apple AlarmKit (iOS 26+). Schedule one-shot, countdown, and recurring alarms as Lock Screen and Dynamic Island Live Activities."
-version: 0.3.0
+version: 0.4.0
 homepage: https://github.com/gdelataillade/flutter_alarmkit
 
 environment:

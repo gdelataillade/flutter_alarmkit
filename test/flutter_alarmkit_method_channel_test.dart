@@ -65,4 +65,65 @@ void main() {
 
     expect(await platform.getAlarms(), isEmpty);
   });
+
+  test('getAuthorizationState maps known and sentinel raw ints', () async {
+    int? reply;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      return call.method == 'getAuthorizationState' ? reply : null;
+    });
+
+    reply = 0;
+    expect(
+      await platform.getAuthorizationState(),
+      AlarmAuthorizationState.notDetermined,
+    );
+    reply = 2;
+    expect(
+      await platform.getAuthorizationState(),
+      AlarmAuthorizationState.denied,
+    );
+    reply = 3;
+    expect(
+      await platform.getAuthorizationState(),
+      AlarmAuthorizationState.authorized,
+    );
+    reply = -1;
+    expect(
+      await platform.getAuthorizationState(),
+      AlarmAuthorizationState.unknown,
+    );
+    reply = null;
+    expect(
+      await platform.getAuthorizationState(),
+      AlarmAuthorizationState.unknown,
+    );
+  });
+
+  test('cancelAll invokes the cancelAll method', () async {
+    var called = false;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'cancelAll') called = true;
+      return null;
+    });
+
+    await platform.cancelAll();
+    expect(called, isTrue);
+  });
+
+  test('cancelAll rethrows a CANCEL_ALL_ERROR PlatformException', () async {
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      throw PlatformException(
+        code: 'CANCEL_ALL_ERROR',
+        message: 'fail',
+        details: ['id-1'],
+      );
+    });
+
+    await expectLater(
+      platform.cancelAll(),
+      throwsA(
+        isA<PlatformException>().having((e) => e.code, 'code', 'CANCEL_ALL_ERROR'),
+      ),
+    );
+  });
 }

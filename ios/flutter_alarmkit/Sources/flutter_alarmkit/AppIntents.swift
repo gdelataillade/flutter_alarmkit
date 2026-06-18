@@ -110,7 +110,7 @@ struct OpenAlarmAppIntent: LiveActivityIntent {
     }
     
     static var title: LocalizedStringResource = "Open App"
-    static var description = IntentDescription("Opens the Sample app")
+    static var description = IntentDescription("Opens the app")
     static var openAppWhenRun = true
     
     @Parameter(title: "alarmID")

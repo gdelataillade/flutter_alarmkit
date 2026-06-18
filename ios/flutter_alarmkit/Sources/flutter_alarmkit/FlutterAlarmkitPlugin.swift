@@ -121,6 +121,9 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     case "cancelAlarm":
       Task { await self.cancelAlarm(call: call, result: result) }
 
+    case "cancelAll":
+      Task { await self.cancelAll(result: result) }
+
     case "countdownAlarm":
       Task { await self.countdownAlarm(call: call, result: result) }
 
@@ -203,6 +206,9 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
   private static let defaultRepeatButton = ButtonConfig(
     text: "Repeat", textColor: .white, systemImageName: "repeat.circle", tintColor: .blue
   )
+  private static let defaultOpenButton = ButtonConfig(
+    text: "Open", textColor: .white, systemImageName: "arrow.up.forward.app", tintColor: .blue
+  )
 
   private func parseButtonConfig(
     from dict: [String: Any]?,
@@ -226,7 +232,7 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     return ButtonConfig(text: text, textColor: textColor, systemImageName: icon, tintColor: tintColor)
   }
 
-  private func storeButtonTints(alarmId: String, stop: ButtonConfig, pause: ButtonConfig? = nil, resume: ButtonConfig? = nil, repeatButton: ButtonConfig? = nil) {
+  private func storeButtonTints(alarmId: String, stop: ButtonConfig, pause: ButtonConfig? = nil, resume: ButtonConfig? = nil, repeatButton: ButtonConfig? = nil, openApp: ButtonConfig? = nil) {
     guard let defaults = UserDefaults(suiteName: AlarmkitPluginImpl.appGroupId) else {
       NSLog("⚠️ Could not access App Group UserDefaults (\(AlarmkitPluginImpl.appGroupId)). Button tint colors will use defaults.")
       return
@@ -242,6 +248,9 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     }
     if let repeatButton = repeatButton {
       tints["repeatTint"] = repeatButton.tintHexString
+    }
+    if let openApp = openApp {
+      tints["openTint"] = openApp.tintHexString
     }
     defaults.set(tints, forKey: "alarm_tints_\(alarmId)")
   }
@@ -306,7 +315,9 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     case .authorized:
       result(3)
     @unknown default:
-      result(0)
+      // Distinct sentinel so Dart maps this to AlarmAuthorizationState.unknown
+      // rather than collapsing into notDetermined (0).
+      result(-1)
     }
   }
 
@@ -508,13 +519,30 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       from: uiConfigDict?["stopButton"] as? [String: Any],
       defaults: AlarmkitPluginImpl.defaultStopButton
     )
-
-    let alertContent = AlarmPresentation.Alert(
-      title: LocalizedStringResource(stringLiteral: label),
-      stopButton: stopConfig.toAlarmButton()
-    )
+    // Optional secondary "Open" button: opens the app and stops the alarm.
+    let openConfig: ButtonConfig? = (uiConfigDict?["openAppButton"] as? [String: Any]).map {
+      parseButtonConfig(from: $0, defaults: AlarmkitPluginImpl.defaultOpenButton)
+    }
 
     let tintColor = parseTintColor(from: args)
+
+    // Generate the id up front so it can back the secondary "Open" intent.
+    let id = UUID()
+
+    let alertContent: AlarmPresentation.Alert
+    if let openConfig = openConfig {
+      alertContent = AlarmPresentation.Alert(
+        title: LocalizedStringResource(stringLiteral: label),
+        stopButton: stopConfig.toAlarmButton(),
+        secondaryButton: openConfig.toAlarmButton(),
+        secondaryButtonBehavior: .custom
+      )
+    } else {
+      alertContent = AlarmPresentation.Alert(
+        title: LocalizedStringResource(stringLiteral: label),
+        stopButton: stopConfig.toAlarmButton()
+      )
+    }
 
     let presentation = AlarmPresentation(alert: alertContent)
 
@@ -524,23 +552,36 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     )
 
     let soundPath = parseSoundPath(from: args)
-    let alarmConfiguration = AlarmManager.AlarmConfiguration<NeverMetadata>(
+    let alarmConfiguration: AlarmManager.AlarmConfiguration<NeverMetadata>
+    if openConfig != nil {
+      // A `.custom` secondary button needs a secondaryIntent so the
+      // system-presented alert knows what to run (the widget's Button(intent:)
+      // only drives the Live Activity).
+      alarmConfiguration = .alarm(
         schedule: .fixed(date),
         attributes: attributes,
-        sound: resolveSoundAsset(soundPath),
-    )
+        stopIntent: nil,
+        secondaryIntent: OpenAlarmAppIntent(alarmID: id.uuidString),
+        sound: resolveSoundAsset(soundPath)
+      )
+    } else {
+      alarmConfiguration = AlarmManager.AlarmConfiguration<NeverMetadata>(
+        schedule: .fixed(date),
+        attributes: attributes,
+        sound: resolveSoundAsset(soundPath)
+      )
+    }
 
     // Persist presentation metadata BEFORE scheduling so the alarm-updates
     // stream's initial `add` event already carries the label/tint, and roll it
     // back if scheduling fails.
-    let id = UUID()
     storeAlarmMeta(
       alarmId: id.uuidString,
       label: label,
       tintColorHex: hexString(from: tintColor),
       createdAt: Date().timeIntervalSince1970
     )
-    storeButtonTints(alarmId: id.uuidString, stop: stopConfig)
+    storeButtonTints(alarmId: id.uuidString, stop: stopConfig, openApp: openConfig)
 
     do {
       let alarm = try await manager.schedule(
@@ -721,10 +762,10 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       ))
       return
     }
-    guard mask != 0 else {
+    guard mask & ~0x7F == 0 else {
       result(FlutterError(
         code: "BAD_ARGS",
-        message: "Invalid weekdayMask: expected at least one selected weekday.",
+        message: "Invalid weekdayMask: expected weekday bits only (0...0x7F).",
         details: nil
       ))
       return
@@ -749,9 +790,11 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     // 3. Decode bitmask into weekdays
     let weekdays = decodeWeekdays(from: mask)
 
-    // 4. Build the weekly schedule
+    // 4. Build the relative schedule. An empty mask means "fire once" (.never);
+    //    otherwise repeat weekly on the selected weekdays.
     let time = Alarm.Schedule.Relative.Time(hour: hour, minute: minute)
-    let recurrence = Alarm.Schedule.Relative.Recurrence.weekly(weekdays)
+    let recurrence: Alarm.Schedule.Relative.Recurrence =
+      weekdays.isEmpty ? .never : .weekly(weekdays)
     let schedule = Alarm.Schedule.Relative(time: time, repeats: recurrence)
 
     // 5. Build presentation UI
@@ -762,13 +805,29 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       from: uiConfigDict?["stopButton"] as? [String: Any],
       defaults: AlarmkitPluginImpl.defaultStopButton
     )
+    // Optional secondary "Open" button: opens the app and stops the alarm.
+    let openConfig: ButtonConfig? = (uiConfigDict?["openAppButton"] as? [String: Any]).map {
+      parseButtonConfig(from: $0, defaults: AlarmkitPluginImpl.defaultOpenButton)
+    }
 
-    let presentation = AlarmPresentation(
-      alert: AlarmPresentation.Alert(
+    // Generate the id up front so it can back the secondary "Open" intent.
+    let id = UUID()
+
+    let alertContent: AlarmPresentation.Alert
+    if let openConfig = openConfig {
+      alertContent = AlarmPresentation.Alert(
+        title: LocalizedStringResource(stringLiteral: label),
+        stopButton: stopConfig.toAlarmButton(),
+        secondaryButton: openConfig.toAlarmButton(),
+        secondaryButtonBehavior: .custom
+      )
+    } else {
+      alertContent = AlarmPresentation.Alert(
         title: LocalizedStringResource(stringLiteral: label),
         stopButton: stopConfig.toAlarmButton()
       )
-    )
+    }
+    let presentation = AlarmPresentation(alert: alertContent)
     let tintColor = parseTintColor(from: args)
     let attributes = AlarmAttributes<NeverMetadata>(
       presentation: presentation,
@@ -777,21 +836,31 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
 
     // 6. Configure and schedule
     let soundPath = parseSoundPath(from: args)
-    let config = AlarmManager
-      .AlarmConfiguration<NeverMetadata>(
+    let config: AlarmManager.AlarmConfiguration<NeverMetadata>
+    if openConfig != nil {
+      // `.custom` secondary needs a secondaryIntent for the system alert.
+      config = .alarm(
         schedule: .relative(schedule),
         attributes: attributes,
-        sound: resolveSoundAsset(soundPath),
+        stopIntent: nil,
+        secondaryIntent: OpenAlarmAppIntent(alarmID: id.uuidString),
+        sound: resolveSoundAsset(soundPath)
       )
+    } else {
+      config = AlarmManager.AlarmConfiguration<NeverMetadata>(
+        schedule: .relative(schedule),
+        attributes: attributes,
+        sound: resolveSoundAsset(soundPath)
+      )
+    }
 
-    let id = UUID()
     storeAlarmMeta(
       alarmId: id.uuidString,
       label: label,
       tintColorHex: hexString(from: tintColor),
       createdAt: Date().timeIntervalSince1970
     )
-    storeButtonTints(alarmId: id.uuidString, stop: stopConfig)
+    storeButtonTints(alarmId: id.uuidString, stop: stopConfig, openApp: openConfig)
 
     do {
       let alarm = try await manager.schedule(
@@ -878,6 +947,43 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
         code: "CANCEL_ERROR",
         message: "Failed to cancel alarm \(parsed.alarmId): \(error.localizedDescription)",
         details: nil
+      ))
+    }
+  }
+
+  private func cancelAll(result: @escaping FlutterResult) async {
+    let manager = AlarmManager.shared
+
+    let alarms: [Alarm]
+    do {
+      alarms = try manager.alarms
+    } catch {
+      result(FlutterError(
+        code: "CANCEL_ALL_ERROR",
+        message: "Failed to fetch alarms: \(error.localizedDescription)",
+        details: nil
+      ))
+      return
+    }
+
+    // Attempt every alarm independently so one failure doesn't block the rest.
+    var failedIds: [String] = []
+    for alarm in alarms {
+      do {
+        try manager.cancel(id: alarm.id)
+        removeAlarmPersistence(alarm.id.uuidString)
+      } catch {
+        failedIds.append(alarm.id.uuidString)
+      }
+    }
+
+    if failedIds.isEmpty {
+      result(nil)
+    } else {
+      result(FlutterError(
+        code: "CANCEL_ALL_ERROR",
+        message: "Failed to cancel \(failedIds.count) of \(alarms.count) alarm(s).",
+        details: failedIds
       ))
     }
   }

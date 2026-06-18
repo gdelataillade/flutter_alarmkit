@@ -3,6 +3,7 @@ import 'package:flutter_alarmkit/flutter_alarmkit_method_channel.dart';
 
 import 'package:flutter_alarmkit/flutter_alarmkit_platform_interface.dart';
 import 'package:flutter_alarmkit/src/alarm.dart';
+import 'package:flutter_alarmkit/src/alarm_authorization_state.dart';
 import 'package:flutter_alarmkit/src/alarm_ui_config.dart';
 import 'package:flutter_alarmkit/src/alarm_update_event.dart';
 import 'package:flutter_alarmkit/src/weekday.dart' show Weekday;
@@ -16,6 +17,7 @@ export 'src/alarm.dart'
         FixedAlarmSchedule,
         RelativeAlarmSchedule,
         UnknownAlarmSchedule;
+export 'src/alarm_authorization_state.dart' show AlarmAuthorizationState;
 export 'src/alarm_button_config.dart' show AlarmButtonConfig;
 export 'src/alarm_ui_config.dart' show AlarmUIConfig;
 export 'src/alarm_update_event.dart' show AlarmUpdateEvent, AlarmUpdateKind;
@@ -52,16 +54,13 @@ class FlutterAlarmkit {
 
   /// Gets the current authorization state of AlarmKit.
   ///
-  /// Returns a [Future<int>] that completes with the raw value of the
-  /// authorization state:
-  /// - 0: notDetermined
-  /// - 1: restricted
-  /// - 2: denied
-  /// - 3: authorized
+  /// Returns a [Future] that completes with the [AlarmAuthorizationState]:
+  /// [AlarmAuthorizationState.notDetermined], [AlarmAuthorizationState.denied],
+  /// [AlarmAuthorizationState.authorized], or [AlarmAuthorizationState.unknown].
   ///
   /// Throws a [PlatformException] if the platform version is not supported
   /// (iOS < 26.0)
-  Future<int> getAuthorizationState() {
+  Future<AlarmAuthorizationState> getAuthorizationState() {
     return FlutterAlarmkitPlatform.instance.getAuthorizationState();
   }
 
@@ -192,10 +191,11 @@ class FlutterAlarmkit {
     );
   }
 
-  /// Schedules a recurrent alarm for the specified weekdays and time.
+  /// Schedules a relative alarm for the given time, repeating on [weekdays].
   ///
-  /// [weekdays] is a set of weekdays when the alarm should trigger;
-  /// it must contain at least one weekday.
+  /// [weekdays] is the set of weekdays the alarm repeats on. Pass
+  /// [Weekday.everyday] (all seven) for a daily alarm, or an **empty set** to
+  /// fire once at the next occurrence of [hour]:[minute] without repeating.
   /// [hour] is the hour of the day (0-23)
   /// [minute] is the minute of the hour (0-59)
   /// [label] is an optional string that will be displayed as the alarm title.
@@ -238,13 +238,6 @@ class FlutterAlarmkit {
     String? soundPath,
     AlarmUIConfig? uiConfig,
   }) {
-    if (weekdays.isEmpty) {
-      throw ArgumentError.value(
-        weekdays,
-        'weekdays',
-        'A recurrent alarm requires at least one weekday.',
-      );
-    }
     return FlutterAlarmkitPlatform.instance.scheduleRecurrentAlarm(
       weekdayMask: Weekday.toBitmask(weekdays),
       hour: hour,
@@ -278,6 +271,20 @@ class FlutterAlarmkit {
   /// system rejected the request).
   Future<bool> cancelAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.cancelAlarm(alarmId: alarmId);
+  }
+
+  /// Cancels every alarm currently known to the system.
+  ///
+  /// Operates on the snapshot of alarms the system reports at call time. Each
+  /// alarm is attempted independently, so one failure does not prevent the
+  /// others from being cancelled.
+  ///
+  /// Throws a [PlatformException] with code `CANCEL_ALL_ERROR` if any
+  /// individual cancellation fails; its `details` is the list of alarm IDs
+  /// that could not be cancelled. Also throws if the platform version is not
+  /// supported (iOS < 26.0).
+  Future<void> cancelAll() {
+    return FlutterAlarmkitPlatform.instance.cancelAll();
   }
 
   /// Pauses the alarm with the specified ID if it's in the countdown state.

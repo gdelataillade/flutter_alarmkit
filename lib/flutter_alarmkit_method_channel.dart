@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'package:flutter_alarmkit/flutter_alarmkit_platform_interface.dart';
 import 'package:flutter_alarmkit/src/alarm.dart';
+import 'package:flutter_alarmkit/src/alarm_authorization_state.dart';
 import 'package:flutter_alarmkit/src/alarm_update_event.dart';
 
 /// An implementation of [FlutterAlarmkitPlatform] that uses method channels.
@@ -45,11 +46,12 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
   }
 
   @override
-  Future<int> getAuthorizationState() async {
+  Future<AlarmAuthorizationState> getAuthorizationState() async {
     try {
-      final state =
-          await methodChannel.invokeMethod<int>('getAuthorizationState') ?? 0;
-      return state;
+      final state = await methodChannel.invokeMethod<int>(
+        'getAuthorizationState',
+      );
+      return AlarmAuthorizationState.fromRaw(state);
     } on PlatformException catch (e) {
       _rethrowMapped(e);
     }
@@ -248,6 +250,15 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
         '[FlutterAlarmkit] Failed to cancel alarm $alarmId: [${e.code}] ${e.message}',
       );
       return false;
+    }
+  }
+
+  @override
+  Future<void> cancelAll() async {
+    try {
+      await methodChannel.invokeMethod<void>('cancelAll');
+    } on PlatformException catch (e) {
+      _rethrowMapped(e);
     }
   }
 

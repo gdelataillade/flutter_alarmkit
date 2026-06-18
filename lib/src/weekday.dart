@@ -26,6 +26,17 @@ enum Weekday {
   /// Sunday (enum position 6).
   sunday;
 
+  /// All seven weekdays. Pass to `scheduleRecurrentAlarm` for a daily alarm.
+  static const Set<Weekday> everyday = {
+    monday,
+    tuesday,
+    wednesday,
+    thursday,
+    friday,
+    saturday,
+    sunday,
+  };
+
   /// Converts a set of weekdays to a bitmask.
   ///
   /// Each weekday occupies the bit at its enum position:
