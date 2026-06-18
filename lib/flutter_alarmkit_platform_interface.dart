@@ -1,6 +1,8 @@
 // ignore_for_file: public_member_api_docs, document_ignores
 
 import 'package:flutter_alarmkit/flutter_alarmkit_method_channel.dart';
+import 'package:flutter_alarmkit/src/alarm.dart';
+import 'package:flutter_alarmkit/src/alarm_update_event.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 /// A plugin for scheduling alarms using AlarmKit on iOS.
@@ -78,7 +80,7 @@ abstract class FlutterAlarmkitPlatform extends PlatformInterface {
     );
   }
 
-  Future<List<Map<String, dynamic>>> getAlarms() {
+  Future<List<Alarm>> getAlarms() {
     throw UnimplementedError('getAlarms() has not been implemented.');
   }
 
@@ -102,7 +104,7 @@ abstract class FlutterAlarmkitPlatform extends PlatformInterface {
     throw UnimplementedError('resumeAlarm() has not been implemented.');
   }
 
-  Stream<dynamic> alarmUpdates() {
+  Stream<AlarmUpdateEvent> alarmUpdates() {
     throw UnimplementedError('alarmUpdates() has not been implemented.');
   }
 }

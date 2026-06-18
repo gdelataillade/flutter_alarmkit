@@ -12,6 +12,16 @@ class AlarmRepositoryImpl implements AlarmRepository {
   }
 
   @override
+  Future<List<Alarm>> getAlarms() async {
+    return await _plugin.getAlarms();
+  }
+
+  @override
+  Stream<AlarmUpdateEvent> watchAlarms() {
+    return _plugin.alarmUpdates();
+  }
+
+  @override
   Future<String> scheduleOneShotAlarm({
     required DateTime timestamp,
     required String label,

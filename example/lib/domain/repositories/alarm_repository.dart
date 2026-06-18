@@ -1,7 +1,14 @@
-import 'package:flutter_alarmkit/flutter_alarmkit.dart' show Weekday;
+import 'package:flutter_alarmkit/flutter_alarmkit.dart'
+    show Alarm, AlarmUpdateEvent, Weekday;
 
 abstract class AlarmRepository {
   Future<bool> requestAuthorization();
+
+  /// All alarms currently known to the system.
+  Future<List<Alarm>> getAlarms();
+
+  /// A stream of alarm add/update/remove events.
+  Stream<AlarmUpdateEvent> watchAlarms();
 
   Future<String> scheduleOneShotAlarm({
     required DateTime timestamp,

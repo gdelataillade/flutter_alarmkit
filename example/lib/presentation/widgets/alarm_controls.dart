@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_alarmkit/flutter_alarmkit.dart';
+// Hide the plugin's AlarmState enum: this file uses the bloc's AlarmState
+// (its state class) with BlocBuilder.
+import 'package:flutter_alarmkit/flutter_alarmkit.dart' hide AlarmState;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/alarm_bloc.dart';
 import 'status_container.dart';
