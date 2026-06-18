@@ -102,6 +102,72 @@ class AlarmControls extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
+              onPressed: state.authStatus == 'Granted'
+                  ? () async {
+                      final plugin = FlutterAlarmkit();
+                      final id = await plugin.scheduleOneShotAlarm(
+                        timestamp: DateTime.now()
+                            .add(const Duration(seconds: 5))
+                            .millisecondsSinceEpoch
+                            .toDouble(),
+                        label: 'Open-App Alarm',
+                        tintColor: '#5856D6',
+                        uiConfig: const AlarmUIConfig(
+                          openAppButton: AlarmButtonConfig(
+                            text: 'Open',
+                            icon: 'arrow.up.forward.app',
+                            tintColor: '#5856D6',
+                          ),
+                        ),
+                      );
+                      debugPrint('Open-app alarm ID: $id');
+                    }
+                  : null,
+              child: const Text('Open-App Alarm (5s)'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: state.authStatus == 'Granted'
+                  ? () async {
+                      final fireAt =
+                          DateTime.now().add(const Duration(minutes: 1));
+                      await FlutterAlarmkit().scheduleRecurrentAlarm(
+                        weekdays: Weekday.everyday,
+                        hour: fireAt.hour,
+                        minute: fireAt.minute,
+                        label: 'Daily Alarm',
+                        tintColor: '#34C759',
+                      );
+                    }
+                  : null,
+              child: const Text('Daily Alarm (~1 min, repeats)'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: state.authStatus == 'Granted'
+                  ? () async {
+                      final fireAt =
+                          DateTime.now().add(const Duration(minutes: 1));
+                      await FlutterAlarmkit().scheduleRecurrentAlarm(
+                        weekdays: const {},
+                        hour: fireAt.hour,
+                        minute: fireAt.minute,
+                        label: 'Once Alarm',
+                        tintColor: '#FF9500',
+                      );
+                    }
+                  : null,
+              child: const Text('Once at Time (~1 min)'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () async {
+                await FlutterAlarmkit().cancelAll();
+              },
+              child: const Text('Cancel All'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
               onPressed: state.lastAlarmId != null
                   ? () {
                       context.read<AlarmBloc>().add(

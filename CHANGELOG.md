@@ -1,3 +1,9 @@
+## 0.4.0
+* Add an **"Open app" secondary button** for one-shot and recurrent alarms via `AlarmUIConfig.openAppButton` — the alert shows Open + Stop, and tapping Open foregrounds the app (and stops the alarm).
+* `scheduleRecurrentAlarm` now accepts an **empty `weekdays` set** to fire once at the next occurrence of the given time without repeating, plus a new `Weekday.everyday` convenience for daily alarms.
+* Add **`cancelAll()`** to cancel every scheduled alarm in one call.
+* **Breaking:** `getAuthorizationState()` now returns a typed `AlarmAuthorizationState` enum instead of a raw `int`.
+
 ## 0.3.0
 * **Typed alarm reads.** `getAlarms()` now returns `List<Alarm>` and `alarmUpdates()` emits `AlarmUpdateEvent`s, exposing each alarm's state, schedule (including recurrence weekdays), countdown durations, and persisted label/tint color.
 * Report **all** alarm states, including `countdown` and `alerting` (previously surfaced as `unknown`). Alarms with an unrecognized state or schedule are now kept (as `unknown`) instead of being silently dropped from `getAlarms()`.

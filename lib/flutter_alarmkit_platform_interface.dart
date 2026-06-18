@@ -2,6 +2,7 @@
 
 import 'package:flutter_alarmkit/flutter_alarmkit_method_channel.dart';
 import 'package:flutter_alarmkit/src/alarm.dart';
+import 'package:flutter_alarmkit/src/alarm_authorization_state.dart';
 import 'package:flutter_alarmkit/src/alarm_update_event.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
@@ -37,7 +38,7 @@ abstract class FlutterAlarmkitPlatform extends PlatformInterface {
     );
   }
 
-  Future<int> getAuthorizationState() {
+  Future<AlarmAuthorizationState> getAuthorizationState() {
     throw UnimplementedError(
       'getAuthorizationState() has not been implemented.',
     );
@@ -94,6 +95,10 @@ abstract class FlutterAlarmkitPlatform extends PlatformInterface {
 
   Future<bool> cancelAlarm({required String alarmId}) {
     throw UnimplementedError('cancelAlarm() has not been implemented.');
+  }
+
+  Future<void> cancelAll() {
+    throw UnimplementedError('cancelAll() has not been implemented.');
   }
 
   Future<bool> stopAlarm({required String alarmId}) {

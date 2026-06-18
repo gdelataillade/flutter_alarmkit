@@ -200,6 +200,11 @@ struct AlarmControls: View {
         return .blue
     }
 
+    private var openTint: Color {
+        if let hex = tints["openTint"], let c = colorFromHex(hex) { return c }
+        return .blue
+    }
+
     var body: some View {
         HStack(spacing: 6) {
             switch state.mode {
@@ -216,12 +221,23 @@ struct AlarmControls: View {
                                tint: resumeTint)
                 }
             case .alert:
-                // Countdown alarms expose a secondary "repeat" button in the
-                // alert state; restart the countdown when it's tapped.
-                if let btn = presentation.alert.secondaryButton {
-                    ButtonView(config: btn,
-                               intent: RepeatIntent(alarmID: state.alarmID.uuidString),
-                               tint: repeatTint)
+                // The alert's secondary button is either a countdown "repeat"
+                // (countdown alarms) or a custom "open app" action (one-shot /
+                // recurrent alarms) — pick the intent by its declared behavior.
+                if let btn = presentation.alert.secondaryButton,
+                   let behavior = presentation.alert.secondaryButtonBehavior {
+                    switch behavior {
+                    case .custom:
+                        ButtonView(config: btn,
+                                   intent: OpenAlarmAppIntent(alarmID: state.alarmID.uuidString),
+                                   tint: openTint)
+                    case .countdown:
+                        ButtonView(config: btn,
+                                   intent: RepeatIntent(alarmID: state.alarmID.uuidString),
+                                   tint: repeatTint)
+                    @unknown default:
+                        EmptyView()
+                    }
                 }
             default:
                 EmptyView()

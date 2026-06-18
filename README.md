@@ -18,12 +18,13 @@ See more: https://developer.apple.com/documentation/alarmkit
 - Request authorization to schedule alarms
 - Schedule one-shot alarms
 - Schedule countdown alarms
-- Schedule recurrent alarms
+- Schedule recurrent, daily, and one-time relative alarms
 - Read scheduled alarms with their full state, schedule, and metadata (`getAlarms`)
 - Observe typed alarm add/update/remove events (`alarmUpdates`)
+- Query the typed authorization state (`getAuthorizationState`)
 - Set custom alarm sounds
-- Customize the Live Activity UI (buttons, icons, colors, titles)
-- Cancel alarms
+- Customize the Live Activity UI (buttons, icons, colors, titles), including an "Open app" button
+- Cancel a single alarm, or all alarms at once (`cancelAll`)
 - Stop alarms
 
 ## Installation
@@ -157,6 +158,27 @@ final alarmId = await FlutterAlarmkit().scheduleRecurrentAlarm(
 );
 ```
 
+Pass `Weekday.everyday` for a daily alarm, or an **empty set** to fire once at
+the next occurrence of the given time without repeating:
+
+```dart
+// Daily at 07:00
+await FlutterAlarmkit().scheduleRecurrentAlarm(
+  weekdays: Weekday.everyday,
+  hour: 7,
+  minute: 0,
+  label: 'Wake up',
+);
+
+// Once at the next 07:00 (no repeat)
+await FlutterAlarmkit().scheduleRecurrentAlarm(
+  weekdays: const {},
+  hour: 7,
+  minute: 0,
+  label: 'One-off',
+);
+```
+
 ### Customize the Live Activity UI
 
 All schedule methods accept an optional `uiConfig` to customize the Live Activity's buttons (text, SF Symbol icon, text color, tint color) and the countdown/paused titles:
@@ -183,12 +205,30 @@ final alarmId = await FlutterAlarmkit().setCountdownAlarm(
 
 Every field is optional — anything you leave null keeps the standard AlarmKit appearance. Custom tint colors require the App Group from the installation steps.
 
+For one-shot and recurrent alarms you can add an **"Open app"** secondary button (shown next to Stop) that foregrounds your app — and stops the alarm — when tapped:
+
+```dart
+await FlutterAlarmkit().scheduleOneShotAlarm(
+  timestamp: fireDate.millisecondsSinceEpoch.toDouble(),
+  label: 'Wake up',
+  uiConfig: const AlarmUIConfig(
+    openAppButton: AlarmButtonConfig(text: 'Open', icon: 'arrow.up.forward.app'),
+  ),
+);
+```
+
 ### Cancel an Alarm
 
 To cancel an alarm:
 
 ```dart
 await FlutterAlarmkit().cancelAlarm(alarmId: alarmId);
+```
+
+Or cancel every scheduled alarm at once:
+
+```dart
+await FlutterAlarmkit().cancelAll();
 ```
 
 ### Stop an Alarm
