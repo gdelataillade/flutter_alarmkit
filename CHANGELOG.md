@@ -1,3 +1,10 @@
+## 0.3.0
+* **Typed alarm reads.** `getAlarms()` now returns `List<Alarm>` and `alarmUpdates()` emits `AlarmUpdateEvent`s, exposing each alarm's state, schedule (including recurrence weekdays), countdown durations, and persisted label/tint color.
+* Report **all** alarm states, including `countdown` and `alerting` (previously surfaced as `unknown`). Alarms with an unrecognized state or schedule are now kept (as `unknown`) instead of being silently dropped from `getAlarms()`.
+* `alarmUpdates()` now emits `update` events only when an alarm's state, schedule, or countdown duration actually changes.
+* Persisted alarm metadata (label/tint) is cleaned up on cancel and removal, so the App Group no longer accumulates orphaned entries.
+* **Breaking:** `getAlarms()` returns `Future<List<Alarm>>` (was `Future<List<Map<String, dynamic>>>`) and `alarmUpdates()` returns `Stream<AlarmUpdateEvent>` (was `Stream<dynamic>`).
+
 ## 0.2.0
 * Add **Swift Package Manager** support alongside CocoaPods.
 * The Live Activity Widget Extension no longer requires CocoaPods — it is a standalone WidgetKit target with no plugin dependency.

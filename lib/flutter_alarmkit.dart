@@ -2,11 +2,23 @@ import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_alarmkit/flutter_alarmkit_method_channel.dart';
 
 import 'package:flutter_alarmkit/flutter_alarmkit_platform_interface.dart';
+import 'package:flutter_alarmkit/src/alarm.dart';
 import 'package:flutter_alarmkit/src/alarm_ui_config.dart';
+import 'package:flutter_alarmkit/src/alarm_update_event.dart';
 import 'package:flutter_alarmkit/src/weekday.dart' show Weekday;
 
+export 'src/alarm.dart'
+    show
+        Alarm,
+        AlarmCountdownDuration,
+        AlarmSchedule,
+        AlarmState,
+        FixedAlarmSchedule,
+        RelativeAlarmSchedule,
+        UnknownAlarmSchedule;
 export 'src/alarm_button_config.dart' show AlarmButtonConfig;
 export 'src/alarm_ui_config.dart' show AlarmUIConfig;
+export 'src/alarm_update_event.dart' show AlarmUpdateEvent, AlarmUpdateKind;
 export 'src/weekday.dart' show Weekday;
 
 /// A plugin for scheduling alarms using AlarmKit on iOS.
@@ -55,14 +67,13 @@ class FlutterAlarmkit {
 
   /// A stream of alarm updates.
   ///
-  /// This stream emits events when alarms are added, updated, or removed.
-  ///
-  /// Returns a [Stream<dynamic>] that emits events when alarms are added,
-  /// updated, or removed.
+  /// Emits an [AlarmUpdateEvent] whenever an alarm is added, updated, or
+  /// removed. `updated` events fire only when an alarm's state, schedule, or
+  /// countdown duration actually changes.
   ///
   /// Throws a [PlatformException] if the platform version is not supported
   /// (iOS < 26.0)
-  Stream<dynamic> alarmUpdates() {
+  Stream<AlarmUpdateEvent> alarmUpdates() {
     return FlutterAlarmkitPlatform.instance.alarmUpdates();
   }
 
@@ -245,14 +256,15 @@ class FlutterAlarmkit {
     );
   }
 
-  /// Gets all the alarms scheduled in the system.
+  /// Gets all the alarms currently known to the system.
   ///
-  /// Returns a [Future<List<Map<String, dynamic>>>] that completes with a
-  /// list of alarms.
+  /// Returns a [Future] that completes with the list of [Alarm]s, including
+  /// each alarm's [AlarmState], schedule, and (for alarms scheduled through
+  /// this plugin) its persisted label and tint color.
   ///
   /// Throws a [PlatformException] if the platform version is not supported
   /// (iOS < 26.0)
-  Future<List<Map<String, dynamic>>> getAlarms() {
+  Future<List<Alarm>> getAlarms() {
     return FlutterAlarmkitPlatform.instance.getAlarms();
   }
 

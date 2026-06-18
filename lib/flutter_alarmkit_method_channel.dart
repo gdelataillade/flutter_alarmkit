@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'package:flutter_alarmkit/flutter_alarmkit_platform_interface.dart';
+import 'package:flutter_alarmkit/src/alarm.dart';
+import 'package:flutter_alarmkit/src/alarm_update_event.dart';
 
 /// An implementation of [FlutterAlarmkitPlatform] that uses method channels.
 class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
@@ -10,11 +12,15 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
   final methodChannel = const MethodChannel('flutter_alarmkit');
 
   static const _eventChannel = EventChannel('flutter_alarmkit/events');
-  Stream<dynamic>? _alarmUpdates;
+  Stream<AlarmUpdateEvent>? _alarmUpdates;
 
   @override
-  Stream<dynamic> alarmUpdates() {
-    _alarmUpdates ??= _eventChannel.receiveBroadcastStream();
+  Stream<AlarmUpdateEvent> alarmUpdates() {
+    _alarmUpdates ??= _eventChannel.receiveBroadcastStream().map(
+      (dynamic event) => AlarmUpdateEvent.fromMap(
+        (event as Map).map((key, dynamic v) => MapEntry(key.toString(), v)),
+      ),
+    );
     return _alarmUpdates!;
   }
 
@@ -173,11 +179,14 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getAlarms() async {
+  Future<List<Alarm>> getAlarms() async {
     final alarms = await methodChannel.invokeListMethod<Map<dynamic, dynamic>>(
       'getAlarms',
     );
-    return alarms?.map((alarm) => alarm.cast<String, dynamic>()).toList() ?? [];
+    return alarms
+            ?.map((alarm) => Alarm.fromMap(alarm.cast<String, dynamic>()))
+            .toList() ??
+        [];
   }
 
   @override

@@ -19,7 +19,8 @@ See more: https://developer.apple.com/documentation/alarmkit
 - Schedule one-shot alarms
 - Schedule countdown alarms
 - Schedule recurrent alarms
-- Listen to alarm updates
+- Read scheduled alarms with their full state, schedule, and metadata (`getAlarms`)
+- Observe typed alarm add/update/remove events (`alarmUpdates`)
 - Set custom alarm sounds
 - Customize the Live Activity UI (buttons, icons, colors, titles)
 - Cancel alarms
@@ -59,15 +60,52 @@ try {
 }
 ```
 
+### Read scheduled alarms
+
+`getAlarms()` returns the alarms currently known to the system as typed
+[`Alarm`] objects — including each alarm's lifecycle state, schedule, countdown
+durations, and (for alarms scheduled through this plugin) its label and tint
+color:
+
+```dart
+final alarms = await FlutterAlarmkit().getAlarms();
+for (final alarm in alarms) {
+  print('${alarm.label} — ${alarm.state}'); // e.g. "Wake up — AlarmState.alerting"
+
+  switch (alarm.schedule) {
+    case FixedAlarmSchedule(:final date):
+      print('Fires once at $date');
+    case RelativeAlarmSchedule(:final hour, :final minute, :final weekdays):
+      print('Fires at $hour:$minute on $weekdays');
+    case UnknownAlarmSchedule():
+    case null:
+      break;
+  }
+}
+```
+
+`AlarmState` mirrors AlarmKit's states: `scheduled`, `countdown`, `paused`,
+`alerting`, and `unknown` (forward-compatible with future iOS states).
+
 ### Listen to alarm updates
 
-To listen to alarm updates (when alarms are added, updated, or removed):
+`alarmUpdates()` emits a typed `AlarmUpdateEvent` whenever an alarm is added,
+updated, or removed. `updated` events fire only when an alarm's state, schedule,
+or countdown duration actually changes:
 
 ```dart
 final stream = FlutterAlarmkit().alarmUpdates();
 
-stream.listen((alarmUpdate) {
-  print('Alarm updated: $alarmUpdate');
+stream.listen((event) {
+  switch (event.kind) {
+    case AlarmUpdateKind.added:
+    case AlarmUpdateKind.updated:
+      print('${event.alarmId} is now ${event.alarm?.state}');
+    case AlarmUpdateKind.removed:
+      print('${event.alarmId} was removed');
+    case AlarmUpdateKind.unknown:
+      break;
+  }
 });
 ```
 

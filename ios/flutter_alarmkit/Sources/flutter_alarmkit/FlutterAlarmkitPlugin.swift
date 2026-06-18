@@ -156,6 +156,14 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     return UIColor(red: red, green: green, blue: blue, alpha: 1.0)
   }
 
+  /// Convert a SwiftUI `Color` into a `#RRGGBB` hex string.
+  private func hexString(from color: Color) -> String {
+    let uiColor = UIColor(color)
+    var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+    uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+    return String(format: "#%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
+  }
+
   // MARK: - App Group
 
   static let appGroupId = "group.flutter-alarmkit"
@@ -236,6 +244,34 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       tints["repeatTint"] = repeatButton.tintHexString
     }
     defaults.set(tints, forKey: "alarm_tints_\(alarmId)")
+  }
+
+  /// Persist the alarm's label and tint color in the App Group so they can be
+  /// returned later — AlarmKit does not expose presentation back to the app.
+  /// `createdAt` (epoch seconds) lets `getAlarms` prune orphans without racing
+  /// an in-flight schedule.
+  private func storeAlarmMeta(alarmId: String, label: String, tintColorHex: String, createdAt: TimeInterval) {
+    guard let defaults = UserDefaults(suiteName: AlarmkitPluginImpl.appGroupId) else {
+      NSLog("⚠️ Could not access App Group UserDefaults (\(AlarmkitPluginImpl.appGroupId)). Alarm label/tint will be unavailable from getAlarms().")
+      return
+    }
+    defaults.set(
+      ["label": label, "tintColor": tintColorHex, "createdAt": createdAt],
+      forKey: "alarm_meta_\(alarmId)"
+    )
+  }
+
+  /// Remove all persisted App Group state (meta + button tints) for an alarm.
+  private func removeAlarmPersistence(_ alarmId: String) {
+    AlarmkitPluginImpl.removeAlarmPersistence(alarmId)
+  }
+
+  /// Static variant of `removeAlarmPersistence`, usable from the alarm-updates
+  /// stream handler (which has no plugin instance).
+  static func removeAlarmPersistence(_ alarmId: String) {
+    guard let defaults = UserDefaults(suiteName: appGroupId) else { return }
+    defaults.removeObject(forKey: "alarm_meta_\(alarmId)")
+    defaults.removeObject(forKey: "alarm_tints_\(alarmId)")
   }
 
   // MARK: - Authorization
@@ -494,14 +530,26 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
         sound: resolveSoundAsset(soundPath),
     )
 
+    // Persist presentation metadata BEFORE scheduling so the alarm-updates
+    // stream's initial `add` event already carries the label/tint, and roll it
+    // back if scheduling fails.
+    let id = UUID()
+    storeAlarmMeta(
+      alarmId: id.uuidString,
+      label: label,
+      tintColorHex: hexString(from: tintColor),
+      createdAt: Date().timeIntervalSince1970
+    )
+    storeButtonTints(alarmId: id.uuidString, stop: stopConfig)
+
     do {
       let alarm = try await manager.schedule(
-        id: UUID(),
+        id: id,
         configuration: alarmConfiguration
       )
-      storeButtonTints(alarmId: alarm.id.uuidString, stop: stopConfig)
       result(alarm.id.uuidString)
     } catch {
+      removeAlarmPersistence(id.uuidString)
       result(FlutterError(
         code: "SCHEDULE_ERROR",
         message: "Failed to schedule alarm: \(error.localizedDescription)",
@@ -607,20 +655,29 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
         sound: resolveSoundAsset(soundPath),
       )
 
+    let id = UUID()
+    storeAlarmMeta(
+      alarmId: id.uuidString,
+      label: label,
+      tintColorHex: hexString(from: tintColor),
+      createdAt: Date().timeIntervalSince1970
+    )
+    storeButtonTints(
+      alarmId: id.uuidString,
+      stop: stopConfig,
+      pause: pauseConfig,
+      resume: resumeConfig,
+      repeatButton: repeatConfig
+    )
+
     do {
       let alarm = try await manager.schedule(
-        id: UUID(),
+        id: id,
         configuration: alarmConfiguration
-      )
-      storeButtonTints(
-        alarmId: alarm.id.uuidString,
-        stop: stopConfig,
-        pause: pauseConfig,
-        resume: resumeConfig,
-        repeatButton: repeatConfig
       )
       result(alarm.id.uuidString)
     } catch {
+      removeAlarmPersistence(id.uuidString)
       result(FlutterError(
         code: "SCHEDULE_ERROR",
         message: "Failed to schedule countdown alarm: \(error.localizedDescription)",
@@ -727,13 +784,22 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
         sound: resolveSoundAsset(soundPath),
       )
 
+    let id = UUID()
+    storeAlarmMeta(
+      alarmId: id.uuidString,
+      label: label,
+      tintColorHex: hexString(from: tintColor),
+      createdAt: Date().timeIntervalSince1970
+    )
+    storeButtonTints(alarmId: id.uuidString, stop: stopConfig)
+
     do {
       let alarm = try await manager.schedule(
-        id: UUID(), configuration: config
+        id: id, configuration: config
       )
-      storeButtonTints(alarmId: alarm.id.uuidString, stop: stopConfig)
       result(alarm.id.uuidString)
     } catch {
+      removeAlarmPersistence(id.uuidString)
       result(FlutterError(
         code: "SCHEDULE_ERROR",
         message: "Failed to schedule recurrent alarm: \(error.localizedDescription)",
@@ -746,7 +812,8 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     let manager = AlarmManager.shared
     do {
         let alarms = try manager.alarms
-        let alarmsData = alarms.compactMap { $0.toDictionary() }
+        let alarmsData = alarms.map { $0.toDictionary() }
+        pruneOrphanedPersistence(liveIds: Set(alarms.map { $0.id.uuidString }))
         result(alarmsData)
     } catch {
         result(FlutterError(
@@ -754,6 +821,28 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
             message: "Failed to get alarms: \(error.localizedDescription)",
             details: nil
         ))
+    }
+  }
+
+  /// Delete persisted App Group state for alarms that no longer exist. Guarded
+  /// by a grace period on the stored `createdAt` so a concurrent in-flight
+  /// schedule (persisted but not yet visible in `manager.alarms`) isn't pruned.
+  private func pruneOrphanedPersistence(liveIds: Set<String>) {
+    guard let defaults = UserDefaults(suiteName: AlarmkitPluginImpl.appGroupId) else { return }
+    let graceSeconds: TimeInterval = 60
+    let now = Date().timeIntervalSince1970
+    for (key, value) in defaults.dictionaryRepresentation() {
+      guard key.hasPrefix("alarm_meta_") else { continue }
+      let alarmId = String(key.dropFirst("alarm_meta_".count))
+      if liveIds.contains(alarmId) { continue }
+      // Keep entries still inside the grace window (covers in-flight schedules
+      // and metadata written without a createdAt by older plugin versions).
+      if let meta = value as? [String: Any],
+         let createdAt = meta["createdAt"] as? TimeInterval,
+         now - createdAt <= graceSeconds {
+        continue
+      }
+      removeAlarmPersistence(alarmId)
     }
   }
 
@@ -770,6 +859,7 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
 
     do {
       try manager.cancel(id: parsed.uuid)
+      removeAlarmPersistence(parsed.alarmId)
       result(true)
     } catch {
       result(FlutterError(

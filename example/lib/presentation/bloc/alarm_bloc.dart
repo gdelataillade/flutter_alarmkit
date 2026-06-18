@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter_alarmkit/flutter_alarmkit.dart';
 import '../../domain/repositories/alarm_repository.dart';
 
 // Events
@@ -68,18 +71,24 @@ class StopAlarm extends AlarmEvent {
   const StopAlarm({required this.alarmId});
 }
 
+/// Re-fetches the live alarm list. Dispatched on init and whenever the
+/// alarm-updates stream reports a change.
+class RefreshAlarms extends AlarmEvent {}
+
 // State
 class AlarmState extends Equatable {
   final String platformVersion;
   final String authStatus;
   final String scheduleStatus;
   final String? lastAlarmId;
+  final List<Alarm> alarms;
 
   const AlarmState({
     this.platformVersion = 'Unknown',
     this.authStatus = 'Not requested',
     this.scheduleStatus = 'No alarm scheduled',
     this.lastAlarmId,
+    this.alarms = const [],
   });
 
   AlarmState copyWith({
@@ -87,12 +96,14 @@ class AlarmState extends Equatable {
     String? authStatus,
     String? scheduleStatus,
     String? lastAlarmId,
+    List<Alarm>? alarms,
   }) {
     return AlarmState(
       platformVersion: platformVersion ?? this.platformVersion,
       authStatus: authStatus ?? this.authStatus,
       scheduleStatus: scheduleStatus ?? this.scheduleStatus,
       lastAlarmId: lastAlarmId ?? this.lastAlarmId,
+      alarms: alarms ?? this.alarms,
     );
   }
 
@@ -102,12 +113,14 @@ class AlarmState extends Equatable {
         authStatus,
         scheduleStatus,
         lastAlarmId,
+        alarms,
       ];
 }
 
 // BLoC
 class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
   final AlarmRepository _repository;
+  late final StreamSubscription<AlarmUpdateEvent> _alarmSubscription;
 
   AlarmBloc(this._repository) : super(const AlarmState()) {
     on<InitializeAlarm>(_onInitialize);
@@ -116,6 +129,20 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
     on<ScheduleCountdownAlarm>(_onScheduleCountdownAlarm);
     on<CancelAlarm>(_onCancelAlarm);
     on<StopAlarm>(_onStopAlarm);
+    on<RefreshAlarms>(_onRefreshAlarms);
+
+    // Subscribe before the first fetch so no update is missed; any system
+    // change re-fetches the authoritative list.
+    _alarmSubscription = _repository.watchAlarms().listen(
+          (_) => add(RefreshAlarms()),
+          onError: (Object _) {},
+        );
+  }
+
+  @override
+  Future<void> close() {
+    _alarmSubscription.cancel();
+    return super.close();
   }
 
   Future<void> _onInitialize(
@@ -128,6 +155,19 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
       emit(state.copyWith(platformVersion: version));
     } catch (e) {
       emit(state.copyWith(platformVersion: 'Failed to get platform version.'));
+    }
+    add(RefreshAlarms());
+  }
+
+  Future<void> _onRefreshAlarms(
+    RefreshAlarms event,
+    Emitter<AlarmState> emit,
+  ) async {
+    try {
+      final alarms = await _repository.getAlarms();
+      emit(state.copyWith(alarms: alarms));
+    } catch (_) {
+      // Likely not authorized yet (or iOS < 26); leave the list unchanged.
     }
   }
 
@@ -184,6 +224,7 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
         scheduleStatus: 'Alarm scheduled!',
         lastAlarmId: alarmId,
       ));
+      add(RefreshAlarms());
     } catch (e) {
       String status = 'Error: $e';
       if (e.toString().contains('UNSUPPORTED_VERSION')) {
@@ -234,6 +275,7 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
         scheduleStatus: 'Alarm scheduled!',
         lastAlarmId: alarmId,
       ));
+      add(RefreshAlarms());
     } catch (e) {
       emit(state.copyWith(scheduleStatus: 'Error: $e'));
     }
@@ -245,6 +287,7 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
   ) async {
     final canceled = await _repository.cancelAlarm(alarmId: event.alarmId);
     emit(state.copyWith(scheduleStatus: canceled ? 'Alarm canceled' : 'Error'));
+    add(RefreshAlarms());
   }
 
   Future<void> _onStopAlarm(
@@ -253,5 +296,6 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
   ) async {
     final stopped = await _repository.stopAlarm(alarmId: event.alarmId);
     emit(state.copyWith(scheduleStatus: stopped ? 'Alarm stopped' : 'Error'));
+    add(RefreshAlarms());
   }
 }
