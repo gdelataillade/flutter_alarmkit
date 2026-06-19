@@ -3,6 +3,8 @@
 * Custom alarm metadata (`AlarmMetadata`: SF Symbol icon + subtitle) — rendered in the Live Activity and returned by `getAlarms()`.
 * One-time and daily relative alarms (empty weekdays / `Weekday.everyday`); `cancelAll()`.
 * **Breaking:** `getAuthorizationState()` → `AlarmAuthorizationState` (was `int`).
+* Fix Live Activity action buttons clipping their labels (e.g. "Stop" → "St…") — buttons now size to fit their text instead of a fixed width.
+* Fix unreadable default button text colors — pause/resume defaulted to green (invisible on the green resume tint) and are now white.
 
 ## 0.2.0
 * Add **Swift Package Manager** support alongside CocoaPods.

@@ -272,6 +272,7 @@ struct ButtonView<I: AppIntent>: View {
         }
         .buttonStyle(.borderedProminent)
         .tint(tint)
-        .frame(width: 80, height: 30)
+        .fixedSize(horizontal: true, vertical: false)
+        .frame(height: 30)
     }
 }

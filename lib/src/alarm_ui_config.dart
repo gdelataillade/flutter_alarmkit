@@ -37,14 +37,14 @@ class AlarmUIConfig {
   /// Pause button shown during the countdown state.
   /// Only used by countdown alarms.
   ///
-  /// Defaults: text="Pause", icon="pause.circle", textColor=system green,
+  /// Defaults: text="Pause", icon="pause.circle", textColor=white,
   /// tintColor=system orange.
   final AlarmButtonConfig? pauseButton;
 
   /// Resume button shown when the alarm is paused.
   /// Only used by countdown alarms.
   ///
-  /// Defaults: text="Resume", icon="play.circle", textColor=system green,
+  /// Defaults: text="Resume", icon="play.circle", textColor=white,
   /// tintColor=system green.
   final AlarmButtonConfig? resumeButton;
 

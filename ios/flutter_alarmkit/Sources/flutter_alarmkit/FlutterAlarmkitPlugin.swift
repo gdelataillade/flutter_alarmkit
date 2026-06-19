@@ -198,10 +198,10 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     text: "Done", textColor: .white, systemImageName: "stop.circle", tintColor: .red
   )
   private static let defaultPauseButton = ButtonConfig(
-    text: "Pause", textColor: .green, systemImageName: "pause.circle", tintColor: .orange
+    text: "Pause", textColor: .white, systemImageName: "pause.circle", tintColor: .orange
   )
   private static let defaultResumeButton = ButtonConfig(
-    text: "Resume", textColor: .green, systemImageName: "play.circle", tintColor: .green
+    text: "Resume", textColor: .white, systemImageName: "play.circle", tintColor: .green
   )
   private static let defaultRepeatButton = ButtonConfig(
     text: "Repeat", textColor: .white, systemImageName: "repeat.circle", tintColor: .blue
