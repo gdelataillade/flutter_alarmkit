@@ -6,10 +6,10 @@ Your alarms will ring even when Do Not Disturb is enabled or if the app has been
 
 See more: https://developer.apple.com/documentation/alarmkit
 
-![Simulator Screenshot - iPhone 16 - 2025-06-20 at 20 30 28](https://github.com/user-attachments/assets/008b96fb-5bef-46e0-adaf-75ed0e105e10)
-<img width="100" alt="IMG_4596" src="https://github.com/user-attachments/assets/b80eeb3a-6d9c-4665-81a0-b6a89a6df090" />
-<img width="100" alt="IMG_4597" src="https://github.com/user-attachments/assets/5dd478f0-c528-44e2-98f4-9228e3d2b20a" />
-<img width="100" alt="IMG_4598" src="https://github.com/user-attachments/assets/b69ca13a-2ab2-4e1e-a29d-d72c082dd885" />
+<img width="150" alt="IMG_0436" src="https://github.com/user-attachments/assets/0990fa59-801f-4cbe-a43a-687879fcdfff" />
+<img width="150" alt="IMG_0438" src="https://github.com/user-attachments/assets/0f3b0f28-fdb1-4781-82ef-2cabd0fbba68" />
+<img width="150" alt="IMG_0437" src="https://github.com/user-attachments/assets/da498822-7dcb-4eb1-9a1c-6ecd010c88a2" />
+<img width="150" alt="IMG_0439" src="https://github.com/user-attachments/assets/823c16c5-14a2-407e-8639-5595a5cf1c20" />
 
 ## Features
 
