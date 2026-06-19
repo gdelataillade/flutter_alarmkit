@@ -1,80 +1,142 @@
 import 'package:flutter/cupertino.dart';
+
+import '../example_theme.dart';
 import '../log_controller.dart';
 
-/// A scrollable, monospaced console of captured logs with a clear button.
-class LogPanel extends StatelessWidget {
+/// A collapsible, monospaced console of captured plugin logs.
+class LogPanel extends StatefulWidget {
   const LogPanel({super.key});
 
   @override
+  State<LogPanel> createState() => _LogPanelState();
+}
+
+class _LogPanelState extends State<LogPanel> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+    return Container(
+      decoration: ExampleTheme.cardDecoration(context),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Text(
-                'LOGS',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                ),
-              ),
-              const Spacer(),
-              CupertinoButton(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                onPressed: logController.clear,
-                child: const Text('Clear', style: TextStyle(fontSize: 13)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Container(
-            height: 200,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: CupertinoColors.black,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: ValueListenableBuilder<List<String>>(
-              valueListenable: logController,
-              builder: (context, lines, _) {
-                if (lines.isEmpty) {
-                  return const Text(
-                    'No logs yet.',
+          CupertinoButton(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+            minimumSize: const Size(double.infinity, 52),
+            onPressed: () => setState(() => _expanded = !_expanded),
+            child: Row(
+              children: [
+                const Icon(CupertinoIcons.chevron_left_slash_chevron_right,
+                    size: 19),
+                const SizedBox(width: 11),
+                const Expanded(
+                  child: Text(
+                    'Plugin logs',
                     style: TextStyle(
-                      color: CupertinoColors.systemGrey,
-                      fontSize: 12,
-                      fontFamily: 'Menlo',
+                      color: CupertinoColors.label,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
                     ),
-                  );
-                }
-                return CupertinoScrollbar(
-                  child: ListView.builder(
-                    reverse: true,
-                    itemCount: lines.length,
-                    itemBuilder: (context, index) {
-                      final line = lines[lines.length - 1 - index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 1),
-                        child: Text(
-                          line,
-                          style: const TextStyle(
-                            color: CupertinoColors.systemGreen,
-                            fontSize: 11,
-                            fontFamily: 'Menlo',
-                          ),
-                        ),
-                      );
-                    },
                   ),
-                );
-              },
+                ),
+                ValueListenableBuilder<List<String>>(
+                  valueListenable: logController,
+                  builder: (context, lines, _) => Text(
+                    '${lines.length}',
+                    style: const TextStyle(
+                      color: ExampleTheme.secondaryText,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  _expanded
+                      ? CupertinoIcons.chevron_up
+                      : CupertinoIcons.chevron_down,
+                  color: ExampleTheme.secondaryText,
+                  size: 16,
+                ),
+              ],
             ),
           ),
+          if (_expanded) ...[
+            Container(
+              height: 1,
+              color: ExampleTheme.resolve(context, ExampleTheme.border),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: CupertinoButton(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      minimumSize: const Size(0, 30),
+                      onPressed: logController.clear,
+                      child: const Text(
+                        'Clear',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    height: 180,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF111418),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: ValueListenableBuilder<List<String>>(
+                      valueListenable: logController,
+                      builder: (context, lines, _) {
+                        if (lines.isEmpty) {
+                          return const Center(
+                            child: Text(
+                              'No log output yet',
+                              style: TextStyle(
+                                color: Color(0xFF7F8994),
+                                fontSize: 12,
+                                fontFamily: 'Menlo',
+                              ),
+                            ),
+                          );
+                        }
+                        return CupertinoScrollbar(
+                          child: ListView.builder(
+                            reverse: true,
+                            itemCount: lines.length,
+                            itemBuilder: (context, index) {
+                              final line = lines[lines.length - 1 - index];
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 2),
+                                child: Text(
+                                  line,
+                                  style: const TextStyle(
+                                    color: Color(0xFFD1D7DE),
+                                    fontSize: 11,
+                                    height: 1.35,
+                                    fontFamily: 'Menlo',
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

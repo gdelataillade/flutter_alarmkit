@@ -86,7 +86,7 @@ class AlarmState extends Equatable {
 
   const AlarmState({
     this.platformVersion = 'Unknown',
-    this.authStatus = 'Not requested',
+    this.authStatus = 'Permission not requested',
     this.scheduleStatus = 'No alarm scheduled',
     this.lastAlarmId,
     this.alarms = const [],

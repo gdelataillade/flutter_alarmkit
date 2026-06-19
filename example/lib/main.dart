@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'di/dependency_injection.dart';
+import 'presentation/example_theme.dart';
 import 'presentation/log_controller.dart';
 import 'presentation/screens/home_screen.dart';
 
@@ -21,6 +22,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return CupertinoApp(
       title: 'AlarmKit Example',
+      debugShowCheckedModeBanner: false,
+      theme: const CupertinoThemeData(
+        primaryColor: ExampleTheme.accent,
+        scaffoldBackgroundColor: ExampleTheme.canvas,
+        barBackgroundColor: ExampleTheme.canvas,
+      ),
       home: BlocProvider(
         create: (_) => DependencyInjection.provideAlarmBloc(),
         child: const HomeScreen(),
