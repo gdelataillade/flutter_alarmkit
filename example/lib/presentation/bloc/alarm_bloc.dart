@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_alarmkit/flutter_alarmkit.dart';
 import '../../domain/repositories/alarm_repository.dart';
+import '../log_controller.dart';
 
 // Events
 abstract class AlarmEvent extends Equatable {
@@ -134,8 +135,16 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
     // Subscribe before the first fetch so no update is missed; any system
     // change re-fetches the authoritative list.
     _alarmSubscription = _repository.watchAlarms().listen(
-          (_) => add(RefreshAlarms()),
-          onError: (Object _) {},
+          (event) {
+            final id = event.alarmId;
+            final shortId = id.length > 8 ? id.substring(0, 8) : id;
+            final stateText =
+                event.alarm != null ? ' (${event.alarm!.state.name})' : '';
+            logController.log('alarm ${event.kind.name}: $shortId$stateText');
+            add(RefreshAlarms());
+          },
+          onError: (Object error) =>
+              logController.log('alarmUpdates error: $error'),
         );
   }
 

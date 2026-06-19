@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 // Hide the plugin's AlarmState enum: this file uses the bloc's AlarmState
 // (its state class) with BlocBuilder.
 import 'package:flutter_alarmkit/flutter_alarmkit.dart' hide AlarmState;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/alarm_bloc.dart';
-import 'status_container.dart';
 
 class AlarmControls extends StatelessWidget {
   const AlarmControls({super.key});
@@ -13,191 +12,180 @@ class AlarmControls extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<AlarmBloc, AlarmState>(
       builder: (context, state) {
+        final granted = state.authStatus == 'Granted';
+        final bloc = context.read<AlarmBloc>();
+        final plugin = FlutterAlarmkit();
+
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Test Alarm:',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            CupertinoListSection.insetGrouped(
+              header: const Text('LAST ACTION'),
+              children: [
+                CupertinoListTile(
+                  title: Text(state.scheduleStatus),
+                  subtitle: state.lastAlarmId != null
+                      ? Text('ID: ${state.lastAlarmId}')
+                      : null,
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            StatusContainer(
-              text: state.scheduleStatus,
-              color: _getScheduleStatusColor(state.scheduleStatus),
-              subtitle:
-                  state.lastAlarmId != null ? 'ID: ${state.lastAlarmId}' : null,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: state.authStatus == 'Granted'
-                  ? () {
-                      context.read<AlarmBloc>().add(
-                            ScheduleOneShotAlarm(
-                              timestamp: DateTime.now().add(
-                                const Duration(seconds: 5),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Column(
+                children: [
+                  _button(
+                    'One-Shot (5s)',
+                    granted
+                        ? () => bloc.add(
+                              ScheduleOneShotAlarm(
+                                timestamp:
+                                    DateTime.now().add(const Duration(seconds: 5)),
+                                label: 'Test Alarm',
+                                tintColor: '#34C759',
+                                soundPath: 'assets/marimba.caf',
                               ),
-                              label: 'Test Alarm',
-                              tintColor: '#00FF00',
-                              soundPath: 'assets/marimba.caf',
-                            ),
-                          );
-                    }
-                  : null,
-              child: const Text('Schedule Test Alarm (5s)'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: state.authStatus == 'Granted'
-                  ? () {
-                      context.read<AlarmBloc>().add(
-                            const ScheduleCountdownAlarm(
-                              countdownDurationInSeconds: 10,
+                            )
+                        : null,
+                  ),
+                  _button(
+                    'Countdown (10s)',
+                    granted
+                        ? () => bloc.add(
+                              const ScheduleCountdownAlarm(
+                                countdownDurationInSeconds: 10,
+                                repeatDurationInSeconds: 5,
+                                label: 'Test Countdown',
+                                tintColor: '#007AFF',
+                                soundPath: 'assets/marimba.caf',
+                              ),
+                            )
+                        : null,
+                  ),
+                  _button(
+                    'Countdown + Metadata (60s)',
+                    granted
+                        ? () async {
+                            final id = await plugin.setCountdownAlarm(
+                              countdownDurationInSeconds: 60,
+                              repeatDurationInSeconds: 10,
+                              label: 'Medication',
+                              tintColor: '#FF2D55',
+                              metadata: const AlarmMetadata(
+                                icon: 'pills.fill',
+                                subtitle: 'Take 2 tablets',
+                              ),
+                            );
+                            debugPrint('Countdown+metadata alarm ID: $id');
+                          }
+                        : null,
+                  ),
+                  _button(
+                    'One-Shot + Metadata (5s)',
+                    granted
+                        ? () async {
+                            final id = await plugin.scheduleOneShotAlarm(
+                              timestamp: DateTime.now()
+                                  .add(const Duration(seconds: 5))
+                                  .millisecondsSinceEpoch
+                                  .toDouble(),
+                              label: 'Medication',
+                              tintColor: '#FF2D55',
+                              metadata: const AlarmMetadata(
+                                icon: 'pills.fill',
+                                subtitle: 'Take 2 tablets',
+                              ),
+                            );
+                            debugPrint('Metadata alarm ID: $id');
+                          }
+                        : null,
+                  ),
+                  _button(
+                    'Custom UI Countdown (15s)',
+                    granted
+                        ? () async {
+                            final id = await plugin.setCountdownAlarm(
+                              countdownDurationInSeconds: 15,
                               repeatDurationInSeconds: 5,
-                              label: 'Test Countdown Alarm',
-                              tintColor: '#0000FF',
-                              soundPath: 'assets/marimba.caf',
-                            ),
-                          );
-                    }
-                  : null,
-              child: const Text('Schedule Countdown Alarm (10s)'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: state.authStatus == 'Granted'
-                  ? () async {
-                      final plugin = FlutterAlarmkit();
-                      final id = await plugin.setCountdownAlarm(
-                        countdownDurationInSeconds: 15,
-                        repeatDurationInSeconds: 5,
-                        label: 'Custom UI Test',
-                        tintColor: '#FF6600',
-                        uiConfig: const AlarmUIConfig(
-                          stopButton: AlarmButtonConfig(
-                            text: 'End',
-                            icon: 'xmark.circle',
-                            tintColor: '#8B0000', // dark red
-                          ),
-                          pauseButton: AlarmButtonConfig(
-                            text: 'Hold',
-                            icon: 'hand.raised',
-                            tintColor: '#4B0082', // indigo
-                          ),
-                          resumeButton: AlarmButtonConfig(
-                            text: 'Go',
-                            icon: 'play.fill',
-                            tintColor: '#006400', // dark green
-                          ),
-                          repeatButton: AlarmButtonConfig(
-                            text: 'Again',
-                            icon: 'arrow.clockwise',
-                          ),
-                          countdownTitle: 'Counting down...',
-                          pausedTitle: 'On hold',
-                        ),
-                      );
-                      debugPrint('Custom alarm ID: $id');
-                    }
-                  : null,
-              child: const Text('Custom UI Alarm (15s)'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: state.authStatus == 'Granted'
-                  ? () async {
-                      final plugin = FlutterAlarmkit();
-                      final id = await plugin.scheduleOneShotAlarm(
-                        timestamp: DateTime.now()
-                            .add(const Duration(seconds: 5))
-                            .millisecondsSinceEpoch
-                            .toDouble(),
-                        label: 'Open-App Alarm',
-                        tintColor: '#5856D6',
-                        uiConfig: const AlarmUIConfig(
-                          openAppButton: AlarmButtonConfig(
-                            text: 'Open',
-                            icon: 'arrow.up.forward.app',
-                            tintColor: '#5856D6',
-                          ),
-                        ),
-                      );
-                      debugPrint('Open-app alarm ID: $id');
-                    }
-                  : null,
-              child: const Text('Open-App Alarm (5s)'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: state.authStatus == 'Granted'
-                  ? () async {
-                      final plugin = FlutterAlarmkit();
-                      final id = await plugin.scheduleOneShotAlarm(
-                        timestamp: DateTime.now()
-                            .add(const Duration(seconds: 5))
-                            .millisecondsSinceEpoch
-                            .toDouble(),
-                        label: 'Medication',
-                        tintColor: '#FF2D55',
-                        metadata: const AlarmMetadata(
-                          icon: 'pills.fill',
-                          subtitle: 'Take 2 tablets',
-                        ),
-                      );
-                      debugPrint('Metadata alarm ID: $id');
-                    }
-                  : null,
-              child: const Text('Metadata Alarm (5s)'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: state.authStatus == 'Granted'
-                  ? () async {
-                      final fireAt =
-                          DateTime.now().add(const Duration(minutes: 1));
-                      await FlutterAlarmkit().scheduleRecurrentAlarm(
-                        weekdays: Weekday.everyday,
-                        hour: fireAt.hour,
-                        minute: fireAt.minute,
-                        label: 'Daily Alarm',
-                        tintColor: '#34C759',
-                      );
-                    }
-                  : null,
-              child: const Text('Daily Alarm (~1 min, repeats)'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: state.authStatus == 'Granted'
-                  ? () async {
-                      final fireAt =
-                          DateTime.now().add(const Duration(minutes: 1));
-                      await FlutterAlarmkit().scheduleRecurrentAlarm(
-                        weekdays: const {},
-                        hour: fireAt.hour,
-                        minute: fireAt.minute,
-                        label: 'Once Alarm',
-                        tintColor: '#FF9500',
-                      );
-                    }
-                  : null,
-              child: const Text('Once at Time (~1 min)'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                await FlutterAlarmkit().cancelAll();
-              },
-              child: const Text('Cancel All'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: state.lastAlarmId != null
-                  ? () {
-                      context.read<AlarmBloc>().add(
-                            StopAlarm(alarmId: state.lastAlarmId!),
-                          );
-                    }
-                  : null,
-              child: const Text('Stop Alarm'),
+                              label: 'Custom UI Test',
+                              tintColor: '#FF6600',
+                              uiConfig: const AlarmUIConfig(
+                                stopButton: AlarmButtonConfig(
+                                  text: 'End',
+                                  icon: 'xmark.circle',
+                                  tintColor: '#8B0000',
+                                ),
+                                pauseButton: AlarmButtonConfig(
+                                  text: 'Hold',
+                                  icon: 'hand.raised',
+                                  tintColor: '#4B0082',
+                                ),
+                                resumeButton: AlarmButtonConfig(
+                                  text: 'Go',
+                                  icon: 'play.fill',
+                                  tintColor: '#006400',
+                                ),
+                                repeatButton: AlarmButtonConfig(
+                                  text: 'Again',
+                                  icon: 'arrow.clockwise',
+                                ),
+                                countdownTitle: 'Counting down...',
+                                pausedTitle: 'On hold',
+                              ),
+                            );
+                            debugPrint('Custom UI alarm ID: $id');
+                          }
+                        : null,
+                  ),
+                  _button(
+                    'Daily (~1 min, repeats)',
+                    granted
+                        ? () async {
+                            final at = DateTime.now().add(const Duration(minutes: 1));
+                            final id = await plugin.scheduleRecurrentAlarm(
+                              weekdays: Weekday.everyday,
+                              hour: at.hour,
+                              minute: at.minute,
+                              label: 'Daily Alarm',
+                              tintColor: '#34C759',
+                            );
+                            debugPrint('Daily alarm ID: $id');
+                          }
+                        : null,
+                  ),
+                  _button(
+                    'Once at Time (~1 min)',
+                    granted
+                        ? () async {
+                            final at = DateTime.now().add(const Duration(minutes: 1));
+                            final id = await plugin.scheduleRecurrentAlarm(
+                              weekdays: const {},
+                              hour: at.hour,
+                              minute: at.minute,
+                              label: 'Once Alarm',
+                              tintColor: '#FF9500',
+                            );
+                            debugPrint('Once alarm ID: $id');
+                          }
+                        : null,
+                  ),
+                  _button(
+                    'Stop Last Alarm',
+                    state.lastAlarmId != null
+                        ? () => bloc.add(StopAlarm(alarmId: state.lastAlarmId!))
+                        : null,
+                    destructive: true,
+                  ),
+                  _button(
+                    'Cancel All',
+                    () async {
+                      await plugin.cancelAll();
+                      debugPrint('Cancelled all alarms');
+                    },
+                    destructive: true,
+                  ),
+                ],
+              ),
             ),
           ],
         );
@@ -205,17 +193,19 @@ class AlarmControls extends StatelessWidget {
     );
   }
 
-  Color _getScheduleStatusColor(String status) {
-    if (status == 'Alarm scheduled!') {
-      return Colors.green;
-    } else if (status == 'Scheduling...') {
-      return Colors.orange;
-    } else if (status.startsWith('Error') ||
-        status == 'iOS 26.0+ required' ||
-        status == 'Please grant alarm permission first') {
-      return Colors.red;
-    } else {
-      return Colors.grey;
-    }
+  Widget _button(String label, VoidCallback? onPressed, {bool destructive = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: SizedBox(
+        width: double.infinity,
+        child: CupertinoButton(
+          color: destructive
+              ? CupertinoColors.destructiveRed
+              : CupertinoColors.activeBlue,
+          onPressed: onPressed,
+          child: Text(label),
+        ),
+      ),
+    );
   }
 }

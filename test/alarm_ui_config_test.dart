@@ -3,38 +3,35 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('AlarmUIConfig.toMap', () {
-    test('includes openAppButton when set', () {
+    test('includes a button when set', () {
       const config = AlarmUIConfig(
-        openAppButton: AlarmButtonConfig(
-          text: 'Open',
-          icon: 'arrow.up.forward.app',
-        ),
+        stopButton: AlarmButtonConfig(text: 'Done', icon: 'stop.circle'),
       );
 
       final map = config.toMap();
-      expect(map.containsKey('openAppButton'), isTrue);
-      expect((map['openAppButton']! as Map)['text'], 'Open');
+      expect(map.containsKey('stopButton'), isTrue);
+      expect((map['stopButton']! as Map)['text'], 'Done');
     });
 
-    test('omits openAppButton when null', () {
+    test('omits unset buttons', () {
       const config = AlarmUIConfig(
         stopButton: AlarmButtonConfig(text: 'Stop', icon: 'stop.circle'),
       );
 
-      expect(config.toMap().containsKey('openAppButton'), isFalse);
+      expect(config.toMap().containsKey('repeatButton'), isFalse);
     });
   });
 
   group('AlarmUIConfig equality', () {
-    test('covers the openAppButton field', () {
+    test('covers button fields', () {
       const a = AlarmUIConfig(
-        openAppButton: AlarmButtonConfig(text: 'Open', icon: 'a'),
+        repeatButton: AlarmButtonConfig(text: 'Again', icon: 'a'),
       );
       const same = AlarmUIConfig(
-        openAppButton: AlarmButtonConfig(text: 'Open', icon: 'a'),
+        repeatButton: AlarmButtonConfig(text: 'Again', icon: 'a'),
       );
       const different = AlarmUIConfig(
-        openAppButton: AlarmButtonConfig(text: 'Launch', icon: 'a'),
+        repeatButton: AlarmButtonConfig(text: 'Repeat', icon: 'a'),
       );
 
       expect(a, same);

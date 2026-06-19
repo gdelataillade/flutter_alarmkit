@@ -1,12 +1,12 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_alarmkit/flutter_alarmkit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 // Prefixed: the bloc's AlarmState (state class) would otherwise clash with the
 // plugin's AlarmState enum used below.
 import '../bloc/alarm_bloc.dart' as bloc;
 
-/// Live list of the alarms currently known to the system, driven by
-/// `getAlarms()` and the `alarmUpdates()` stream.
+/// Live list of the alarms known to the system, driven by getAlarms() and the
+/// alarmUpdates() stream.
 class AlarmsList extends StatelessWidget {
   const AlarmsList({super.key});
 
@@ -14,34 +14,39 @@ class AlarmsList extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<bloc.AlarmBloc, bloc.AlarmState>(
       builder: (context, state) {
-        if (state.alarms.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Text(
-              'No scheduled alarms',
-              style: TextStyle(color: Colors.grey),
-            ),
-          );
-        }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        return CupertinoListSection.insetGrouped(
+          header: const Text('SCHEDULED ALARMS'),
           children: [
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Scheduled alarms:',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 8),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: state.alarms.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) =>
-                  _AlarmTile(alarm: state.alarms[index]),
-            ),
+            if (state.alarms.isEmpty)
+              const CupertinoListTile(
+                title: Text(
+                  'No scheduled alarms',
+                  style: TextStyle(color: CupertinoColors.systemGrey),
+                ),
+              )
+            else
+              for (final alarm in state.alarms)
+                CupertinoListTile(
+                  leading: Icon(
+                    CupertinoIcons.alarm,
+                    color: _tintColor(alarm.tintColor) ??
+                        CupertinoColors.activeBlue,
+                  ),
+                  title: Text(alarm.label ?? '(no label)'),
+                  subtitle: Text(_subtitle(alarm)),
+                  additionalInfo: Text(
+                    alarm.state.name,
+                    style: TextStyle(color: _stateColor(alarm.state)),
+                  ),
+                  trailing: CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    onPressed: () => context
+                        .read<bloc.AlarmBloc>()
+                        .add(bloc.CancelAlarm(alarmId: alarm.id)),
+                    child: const Icon(CupertinoIcons.delete, size: 20),
+                  ),
+                ),
           ],
         );
       },
@@ -49,74 +54,25 @@ class AlarmsList extends StatelessWidget {
   }
 }
 
-class _AlarmTile extends StatelessWidget {
-  const _AlarmTile({required this.alarm});
-
-  final Alarm alarm;
-
-  @override
-  Widget build(BuildContext context) {
-    final tint = _tintColor(alarm.tintColor);
-    return Card(
-      margin: EdgeInsets.zero,
-      child: ListTile(
-        leading: tint == null
-            ? const Icon(Icons.alarm)
-            : CircleAvatar(backgroundColor: tint, radius: 12),
-        title: Text(alarm.label ?? '(no label)'),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 2),
-            Row(
-              children: [
-                Text(
-                  alarm.state.name,
-                  style: TextStyle(
-                    color: _stateColor(alarm.state),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _scheduleSummary(alarm),
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-              ],
-            ),
-            Text(
-              'ID: ${_shortId(alarm.id)}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-          ],
-        ),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete_outline),
-          tooltip: 'Cancel',
-          onPressed: () => context
-              .read<bloc.AlarmBloc>()
-              .add(bloc.CancelAlarm(alarmId: alarm.id)),
-        ),
-      ),
-    );
-  }
+String _subtitle(Alarm alarm) {
+  final parts = <String>[_scheduleSummary(alarm)];
+  final sub = alarm.metadata?.subtitle;
+  if (sub != null && sub.isNotEmpty) parts.add(sub);
+  return parts.join(' · ');
 }
 
 Color _stateColor(AlarmState state) {
   switch (state) {
     case AlarmState.alerting:
-      return Colors.red;
+      return CupertinoColors.systemRed;
     case AlarmState.countdown:
-      return Colors.blue;
+      return CupertinoColors.activeBlue;
     case AlarmState.paused:
-      return Colors.orange;
+      return CupertinoColors.systemOrange;
     case AlarmState.scheduled:
-      return Colors.green;
+      return CupertinoColors.systemGreen;
     case AlarmState.unknown:
-      return Colors.grey;
+      return CupertinoColors.systemGrey;
   }
 }
 
@@ -151,7 +107,6 @@ String _weekdayLabels(Set<Weekday> days) {
     Weekday.saturday: 'Sat',
     Weekday.sunday: 'Sun',
   };
-  // Order by enum index for a stable display.
   return Weekday.values
       .where(days.contains)
       .map((day) => names[day])
@@ -163,8 +118,6 @@ String _formatDateTime(DateTime date) =>
     '${_two(date.hour)}:${_two(date.minute)}';
 
 String _two(int n) => n.toString().padLeft(2, '0');
-
-String _shortId(String id) => id.length <= 8 ? id : id.substring(0, 8);
 
 Color? _tintColor(String? hex) {
   if (hex == null) return null;

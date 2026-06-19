@@ -23,7 +23,7 @@ See more: https://developer.apple.com/documentation/alarmkit
 - Observe typed alarm add/update/remove events (`alarmUpdates`)
 - Query the typed authorization state (`getAuthorizationState`)
 - Set custom alarm sounds
-- Customize the Live Activity UI (buttons, icons, colors, titles), including an "Open app" button
+- Customize the Live Activity UI (buttons, icons, colors, titles)
 - Attach a displayable icon + subtitle to an alarm (`AlarmMetadata`)
 - Cancel a single alarm, or all alarms at once (`cancelAll`)
 - Stop alarms
@@ -205,18 +205,6 @@ final alarmId = await FlutterAlarmkit().setCountdownAlarm(
 ```
 
 Every field is optional — anything you leave null keeps the standard AlarmKit appearance. Custom tint colors require the App Group from the installation steps.
-
-For one-shot and recurrent alarms you can add an **"Open app"** secondary button (shown next to Stop) that foregrounds your app — and stops the alarm — when tapped:
-
-```dart
-await FlutterAlarmkit().scheduleOneShotAlarm(
-  timestamp: fireDate.millisecondsSinceEpoch.toDouble(),
-  label: 'Wake up',
-  uiConfig: const AlarmUIConfig(
-    openAppButton: AlarmButtonConfig(text: 'Open', icon: 'arrow.up.forward.app'),
-  ),
-);
-```
 
 ### Attach metadata
 
