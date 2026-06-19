@@ -4,6 +4,7 @@ import 'package:flutter_alarmkit/flutter_alarmkit_method_channel.dart';
 import 'package:flutter_alarmkit/flutter_alarmkit_platform_interface.dart';
 import 'package:flutter_alarmkit/src/alarm.dart';
 import 'package:flutter_alarmkit/src/alarm_authorization_state.dart';
+import 'package:flutter_alarmkit/src/alarm_metadata.dart';
 import 'package:flutter_alarmkit/src/alarm_ui_config.dart';
 import 'package:flutter_alarmkit/src/alarm_update_event.dart';
 import 'package:flutter_alarmkit/src/weekday.dart' show Weekday;
@@ -19,6 +20,7 @@ export 'src/alarm.dart'
         UnknownAlarmSchedule;
 export 'src/alarm_authorization_state.dart' show AlarmAuthorizationState;
 export 'src/alarm_button_config.dart' show AlarmButtonConfig;
+export 'src/alarm_metadata.dart' show AlarmMetadata;
 export 'src/alarm_ui_config.dart' show AlarmUIConfig;
 export 'src/alarm_update_event.dart' show AlarmUpdateEvent, AlarmUpdateKind;
 export 'src/weekday.dart' show Weekday;
@@ -122,6 +124,7 @@ class FlutterAlarmkit {
     String? tintColor,
     String? soundPath,
     AlarmUIConfig? uiConfig,
+    AlarmMetadata? metadata,
   }) {
     return FlutterAlarmkitPlatform.instance.scheduleOneShotAlarm(
       timestamp: timestamp,
@@ -129,6 +132,7 @@ class FlutterAlarmkit {
       tintColor: tintColor,
       soundPath: soundPath,
       uiConfig: uiConfig?.toMap(),
+      metadata: (metadata == null || metadata.isEmpty) ? null : metadata.toMap(),
     );
   }
 
@@ -180,6 +184,7 @@ class FlutterAlarmkit {
     String? tintColor,
     String? soundPath,
     AlarmUIConfig? uiConfig,
+    AlarmMetadata? metadata,
   }) {
     return FlutterAlarmkitPlatform.instance.setCountdownAlarm(
       countdownDurationInSeconds: countdownDurationInSeconds,
@@ -188,6 +193,7 @@ class FlutterAlarmkit {
       tintColor: tintColor,
       soundPath: soundPath,
       uiConfig: uiConfig?.toMap(),
+      metadata: (metadata == null || metadata.isEmpty) ? null : metadata.toMap(),
     );
   }
 
@@ -237,6 +243,7 @@ class FlutterAlarmkit {
     String? tintColor,
     String? soundPath,
     AlarmUIConfig? uiConfig,
+    AlarmMetadata? metadata,
   }) {
     return FlutterAlarmkitPlatform.instance.scheduleRecurrentAlarm(
       weekdayMask: Weekday.toBitmask(weekdays),
@@ -246,6 +253,7 @@ class FlutterAlarmkit {
       tintColor: tintColor,
       soundPath: soundPath,
       uiConfig: uiConfig?.toMap(),
+      metadata: (metadata == null || metadata.isEmpty) ? null : metadata.toMap(),
     );
   }
 

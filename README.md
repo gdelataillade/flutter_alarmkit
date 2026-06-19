@@ -23,7 +23,8 @@ See more: https://developer.apple.com/documentation/alarmkit
 - Observe typed alarm add/update/remove events (`alarmUpdates`)
 - Query the typed authorization state (`getAuthorizationState`)
 - Set custom alarm sounds
-- Customize the Live Activity UI (buttons, icons, colors, titles), including an "Open app" button
+- Customize the Live Activity UI (buttons, icons, colors, titles)
+- Attach a displayable icon + subtitle to an alarm (`AlarmMetadata`)
 - Cancel a single alarm, or all alarms at once (`cancelAll`)
 - Stop alarms
 
@@ -205,17 +206,19 @@ final alarmId = await FlutterAlarmkit().setCountdownAlarm(
 
 Every field is optional — anything you leave null keeps the standard AlarmKit appearance. Custom tint colors require the App Group from the installation steps.
 
-For one-shot and recurrent alarms you can add an **"Open app"** secondary button (shown next to Stop) that foregrounds your app — and stops the alarm — when tapped:
+### Attach metadata
+
+Attach a displayable SF Symbol `icon` and a `subtitle` to an alarm with `metadata` (available on every schedule method). The Live Activity renders them alongside the title, and they're returned by `getAlarms()`:
 
 ```dart
 await FlutterAlarmkit().scheduleOneShotAlarm(
   timestamp: fireDate.millisecondsSinceEpoch.toDouble(),
-  label: 'Wake up',
-  uiConfig: const AlarmUIConfig(
-    openAppButton: AlarmButtonConfig(text: 'Open', icon: 'arrow.up.forward.app'),
-  ),
+  label: 'Medication',
+  metadata: const AlarmMetadata(icon: 'pills.fill', subtitle: 'Take 2 tablets'),
 );
 ```
+
+The default widget renders the icon and subtitle; you can change *how* they render by editing your generated `AlarmkitWidget` sources. Adding entirely new metadata fields also requires changing the plugin's Swift struct.
 
 ### Cancel an Alarm
 

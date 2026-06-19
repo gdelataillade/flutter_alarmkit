@@ -37,14 +37,14 @@ class AlarmUIConfig {
   /// Pause button shown during the countdown state.
   /// Only used by countdown alarms.
   ///
-  /// Defaults: text="Pause", icon="pause.circle", textColor=system green,
+  /// Defaults: text="Pause", icon="pause.circle", textColor=white,
   /// tintColor=system orange.
   final AlarmButtonConfig? pauseButton;
 
   /// Resume button shown when the alarm is paused.
   /// Only used by countdown alarms.
   ///
-  /// Defaults: text="Resume", icon="play.circle", textColor=system green,
+  /// Defaults: text="Resume", icon="play.circle", textColor=white,
   /// tintColor=system green.
   final AlarmButtonConfig? resumeButton;
 
@@ -55,17 +55,6 @@ class AlarmUIConfig {
   /// Defaults: text="Repeat", icon="repeat.circle", textColor=white,
   /// tintColor=system blue.
   final AlarmButtonConfig? repeatButton;
-
-  /// Secondary "Open" button shown in the alert state for one-shot and
-  /// recurrent (relative) alarms. Tapping it opens the app and stops the alarm.
-  ///
-  /// Ignored for countdown alarms, which use [repeatButton] as their alert
-  /// secondary button. When null, no secondary button is shown for one-shot /
-  /// recurrent alarms (just Stop).
-  ///
-  /// Defaults (when provided without overrides): text="Open",
-  /// icon="arrow.up.forward.app", textColor=white, tintColor=system blue.
-  final AlarmButtonConfig? openAppButton;
 
   /// Title shown during the countdown state.
   /// If null, uses the alarm's main label.
@@ -81,7 +70,6 @@ class AlarmUIConfig {
     this.pauseButton,
     this.resumeButton,
     this.repeatButton,
-    this.openAppButton,
     this.countdownTitle,
     this.pausedTitle,
   });
@@ -93,7 +81,6 @@ class AlarmUIConfig {
       if (pauseButton != null) 'pauseButton': pauseButton!.toMap(),
       if (resumeButton != null) 'resumeButton': resumeButton!.toMap(),
       if (repeatButton != null) 'repeatButton': repeatButton!.toMap(),
-      if (openAppButton != null) 'openAppButton': openAppButton!.toMap(),
       if (countdownTitle != null) 'countdownTitle': countdownTitle,
       if (pausedTitle != null) 'pausedTitle': pausedTitle,
     };
@@ -107,17 +94,16 @@ class AlarmUIConfig {
           other.pauseButton == pauseButton &&
           other.resumeButton == resumeButton &&
           other.repeatButton == repeatButton &&
-          other.openAppButton == openAppButton &&
           other.countdownTitle == countdownTitle &&
           other.pausedTitle == pausedTitle;
 
   @override
   int get hashCode => Object.hash(stopButton, pauseButton, resumeButton,
-      repeatButton, openAppButton, countdownTitle, pausedTitle);
+      repeatButton, countdownTitle, pausedTitle);
 
   @override
   String toString() => 'AlarmUIConfig(stopButton: $stopButton, '
       'pauseButton: $pauseButton, resumeButton: $resumeButton, '
-      'repeatButton: $repeatButton, openAppButton: $openAppButton, '
-      'countdownTitle: $countdownTitle, pausedTitle: $pausedTitle)';
+      'repeatButton: $repeatButton, countdownTitle: $countdownTitle, '
+      'pausedTitle: $pausedTitle)';
 }

@@ -198,16 +198,13 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     text: "Done", textColor: .white, systemImageName: "stop.circle", tintColor: .red
   )
   private static let defaultPauseButton = ButtonConfig(
-    text: "Pause", textColor: .green, systemImageName: "pause.circle", tintColor: .orange
+    text: "Pause", textColor: .white, systemImageName: "pause.circle", tintColor: .orange
   )
   private static let defaultResumeButton = ButtonConfig(
-    text: "Resume", textColor: .green, systemImageName: "play.circle", tintColor: .green
+    text: "Resume", textColor: .white, systemImageName: "play.circle", tintColor: .green
   )
   private static let defaultRepeatButton = ButtonConfig(
     text: "Repeat", textColor: .white, systemImageName: "repeat.circle", tintColor: .blue
-  )
-  private static let defaultOpenButton = ButtonConfig(
-    text: "Open", textColor: .white, systemImageName: "arrow.up.forward.app", tintColor: .blue
   )
 
   private func parseButtonConfig(
@@ -232,7 +229,7 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     return ButtonConfig(text: text, textColor: textColor, systemImageName: icon, tintColor: tintColor)
   }
 
-  private func storeButtonTints(alarmId: String, stop: ButtonConfig, pause: ButtonConfig? = nil, resume: ButtonConfig? = nil, repeatButton: ButtonConfig? = nil, openApp: ButtonConfig? = nil) {
+  private func storeButtonTints(alarmId: String, stop: ButtonConfig, pause: ButtonConfig? = nil, resume: ButtonConfig? = nil, repeatButton: ButtonConfig? = nil) {
     guard let defaults = UserDefaults(suiteName: AlarmkitPluginImpl.appGroupId) else {
       NSLog("⚠️ Could not access App Group UserDefaults (\(AlarmkitPluginImpl.appGroupId)). Button tint colors will use defaults.")
       return
@@ -249,9 +246,6 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     if let repeatButton = repeatButton {
       tints["repeatTint"] = repeatButton.tintHexString
     }
-    if let openApp = openApp {
-      tints["openTint"] = openApp.tintHexString
-    }
     defaults.set(tints, forKey: "alarm_tints_\(alarmId)")
   }
 
@@ -259,15 +253,25 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
   /// returned later — AlarmKit does not expose presentation back to the app.
   /// `createdAt` (epoch seconds) lets `getAlarms` prune orphans without racing
   /// an in-flight schedule.
-  private func storeAlarmMeta(alarmId: String, label: String, tintColorHex: String, createdAt: TimeInterval) {
+  private func storeAlarmMeta(alarmId: String, label: String, tintColorHex: String, createdAt: TimeInterval, metadata: NeverMetadata? = nil) {
     guard let defaults = UserDefaults(suiteName: AlarmkitPluginImpl.appGroupId) else {
       NSLog("⚠️ Could not access App Group UserDefaults (\(AlarmkitPluginImpl.appGroupId)). Alarm label/tint will be unavailable from getAlarms().")
       return
     }
-    defaults.set(
-      ["label": label, "tintColor": tintColorHex, "createdAt": createdAt],
-      forKey: "alarm_meta_\(alarmId)"
-    )
+    var stored: [String: Any] = [
+      "label": label,
+      "tintColor": tintColorHex,
+      "createdAt": createdAt,
+    ]
+    // Persist the displayable metadata as a nested dictionary so getAlarms()
+    // can return it (AlarmKit does not expose attributes after scheduling).
+    if let metadata = metadata {
+      var metaDict: [String: String] = [:]
+      if let icon = metadata.icon, !icon.isEmpty { metaDict["icon"] = icon }
+      if let subtitle = metadata.subtitle, !subtitle.isEmpty { metaDict["subtitle"] = subtitle }
+      if !metaDict.isEmpty { stored["metadata"] = metaDict }
+    }
+    defaults.set(stored, forKey: "alarm_meta_\(alarmId)")
   }
 
   /// Remove all persisted App Group state (meta + button tints) for an alarm.
@@ -420,6 +424,16 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     return args["soundPath"] as? String
   }
 
+  /// Parse the optional displayable metadata (icon + subtitle). Empty strings
+  /// are treated as absent; returns nil when no field is set.
+  private func parseMetadata(from args: [String: Any]) -> NeverMetadata? {
+    guard let dict = args["metadata"] as? [String: Any] else { return nil }
+    let icon = (dict["icon"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+    let subtitle = (dict["subtitle"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+    if icon == nil, subtitle == nil { return nil }
+    return NeverMetadata(icon: icon, subtitle: subtitle)
+  }
+
   private func resolveSoundAsset(_ assetPath: String?) -> AlertConfiguration.AlertSound {
     guard let assetPath = assetPath, !assetPath.isEmpty else {
       return .default
@@ -519,58 +533,29 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       from: uiConfigDict?["stopButton"] as? [String: Any],
       defaults: AlarmkitPluginImpl.defaultStopButton
     )
-    // Optional secondary "Open" button: opens the app and stops the alarm.
-    let openConfig: ButtonConfig? = (uiConfigDict?["openAppButton"] as? [String: Any]).map {
-      parseButtonConfig(from: $0, defaults: AlarmkitPluginImpl.defaultOpenButton)
-    }
 
     let tintColor = parseTintColor(from: args)
-
-    // Generate the id up front so it can back the secondary "Open" intent.
     let id = UUID()
 
-    let alertContent: AlarmPresentation.Alert
-    if let openConfig = openConfig {
-      alertContent = AlarmPresentation.Alert(
-        title: LocalizedStringResource(stringLiteral: label),
-        stopButton: stopConfig.toAlarmButton(),
-        secondaryButton: openConfig.toAlarmButton(),
-        secondaryButtonBehavior: .custom
-      )
-    } else {
-      alertContent = AlarmPresentation.Alert(
-        title: LocalizedStringResource(stringLiteral: label),
-        stopButton: stopConfig.toAlarmButton()
-      )
-    }
-
+    let alertContent = AlarmPresentation.Alert(
+      title: LocalizedStringResource(stringLiteral: label),
+      stopButton: stopConfig.toAlarmButton()
+    )
     let presentation = AlarmPresentation(alert: alertContent)
 
+    let metadata = parseMetadata(from: args)
     let attributes = AlarmAttributes<NeverMetadata>(
       presentation: presentation,
+      metadata: metadata,
       tintColor: tintColor
     )
 
     let soundPath = parseSoundPath(from: args)
-    let alarmConfiguration: AlarmManager.AlarmConfiguration<NeverMetadata>
-    if openConfig != nil {
-      // A `.custom` secondary button needs a secondaryIntent so the
-      // system-presented alert knows what to run (the widget's Button(intent:)
-      // only drives the Live Activity).
-      alarmConfiguration = .alarm(
-        schedule: .fixed(date),
-        attributes: attributes,
-        stopIntent: nil,
-        secondaryIntent: OpenAlarmAppIntent(alarmID: id.uuidString),
-        sound: resolveSoundAsset(soundPath)
-      )
-    } else {
-      alarmConfiguration = AlarmManager.AlarmConfiguration<NeverMetadata>(
-        schedule: .fixed(date),
-        attributes: attributes,
-        sound: resolveSoundAsset(soundPath)
-      )
-    }
+    let alarmConfiguration = AlarmManager.AlarmConfiguration<NeverMetadata>(
+      schedule: .fixed(date),
+      attributes: attributes,
+      sound: resolveSoundAsset(soundPath)
+    )
 
     // Persist presentation metadata BEFORE scheduling so the alarm-updates
     // stream's initial `add` event already carries the label/tint, and roll it
@@ -579,9 +564,10 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       alarmId: id.uuidString,
       label: label,
       tintColorHex: hexString(from: tintColor),
-      createdAt: Date().timeIntervalSince1970
+      createdAt: Date().timeIntervalSince1970,
+      metadata: metadata
     )
-    storeButtonTints(alarmId: id.uuidString, stop: stopConfig, openApp: openConfig)
+    storeButtonTints(alarmId: id.uuidString, stop: stopConfig)
 
     do {
       let alarm = try await manager.schedule(
@@ -684,8 +670,10 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       )
     )
     let tintColor = parseTintColor(from: args)
+    let metadata = parseMetadata(from: args)
     let attributes = AlarmAttributes<NeverMetadata>(
       presentation: presentation,
+      metadata: metadata,
       tintColor: tintColor
     )
     let soundPath = parseSoundPath(from: args)
@@ -701,7 +689,8 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       alarmId: id.uuidString,
       label: label,
       tintColorHex: hexString(from: tintColor),
-      createdAt: Date().timeIntervalSince1970
+      createdAt: Date().timeIntervalSince1970,
+      metadata: metadata
     )
     storeButtonTints(
       alarmId: id.uuidString,
@@ -805,62 +794,38 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       from: uiConfigDict?["stopButton"] as? [String: Any],
       defaults: AlarmkitPluginImpl.defaultStopButton
     )
-    // Optional secondary "Open" button: opens the app and stops the alarm.
-    let openConfig: ButtonConfig? = (uiConfigDict?["openAppButton"] as? [String: Any]).map {
-      parseButtonConfig(from: $0, defaults: AlarmkitPluginImpl.defaultOpenButton)
-    }
 
-    // Generate the id up front so it can back the secondary "Open" intent.
     let id = UUID()
 
-    let alertContent: AlarmPresentation.Alert
-    if let openConfig = openConfig {
-      alertContent = AlarmPresentation.Alert(
-        title: LocalizedStringResource(stringLiteral: label),
-        stopButton: stopConfig.toAlarmButton(),
-        secondaryButton: openConfig.toAlarmButton(),
-        secondaryButtonBehavior: .custom
-      )
-    } else {
-      alertContent = AlarmPresentation.Alert(
-        title: LocalizedStringResource(stringLiteral: label),
-        stopButton: stopConfig.toAlarmButton()
-      )
-    }
+    let alertContent = AlarmPresentation.Alert(
+      title: LocalizedStringResource(stringLiteral: label),
+      stopButton: stopConfig.toAlarmButton()
+    )
     let presentation = AlarmPresentation(alert: alertContent)
     let tintColor = parseTintColor(from: args)
+    let metadata = parseMetadata(from: args)
     let attributes = AlarmAttributes<NeverMetadata>(
       presentation: presentation,
+      metadata: metadata,
       tintColor: tintColor
     )
 
     // 6. Configure and schedule
     let soundPath = parseSoundPath(from: args)
-    let config: AlarmManager.AlarmConfiguration<NeverMetadata>
-    if openConfig != nil {
-      // `.custom` secondary needs a secondaryIntent for the system alert.
-      config = .alarm(
-        schedule: .relative(schedule),
-        attributes: attributes,
-        stopIntent: nil,
-        secondaryIntent: OpenAlarmAppIntent(alarmID: id.uuidString),
-        sound: resolveSoundAsset(soundPath)
-      )
-    } else {
-      config = AlarmManager.AlarmConfiguration<NeverMetadata>(
-        schedule: .relative(schedule),
-        attributes: attributes,
-        sound: resolveSoundAsset(soundPath)
-      )
-    }
+    let config = AlarmManager.AlarmConfiguration<NeverMetadata>(
+      schedule: .relative(schedule),
+      attributes: attributes,
+      sound: resolveSoundAsset(soundPath)
+    )
 
     storeAlarmMeta(
       alarmId: id.uuidString,
       label: label,
       tintColorHex: hexString(from: tintColor),
-      createdAt: Date().timeIntervalSince1970
+      createdAt: Date().timeIntervalSince1970,
+      metadata: metadata
     )
-    storeButtonTints(alarmId: id.uuidString, stop: stopConfig, openApp: openConfig)
+    storeButtonTints(alarmId: id.uuidString, stop: stopConfig)
 
     do {
       let alarm = try await manager.schedule(

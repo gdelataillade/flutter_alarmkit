@@ -64,6 +64,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
     String? tintColor,
     String? soundPath,
     Map<String, dynamic>? uiConfig,
+    Map<String, dynamic>? metadata,
   }) async {
     try {
       final args = {
@@ -72,6 +73,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
         if (tintColor != null) 'tintColor': tintColor,
         if (soundPath != null) 'soundPath': soundPath,
         if (uiConfig != null) 'uiConfig': uiConfig,
+        if (metadata != null) 'metadata': metadata,
       };
 
       final alarmId = await methodChannel.invokeMethod<String>(
@@ -104,6 +106,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
     String? tintColor,
     String? soundPath,
     Map<String, dynamic>? uiConfig,
+    Map<String, dynamic>? metadata,
   }) async {
     try {
       final args = {
@@ -113,6 +116,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
         if (tintColor != null) 'tintColor': tintColor,
         if (soundPath != null) 'soundPath': soundPath,
         if (uiConfig != null) 'uiConfig': uiConfig,
+        if (metadata != null) 'metadata': metadata,
       };
 
       final alarmId = await methodChannel.invokeMethod<String>(
@@ -146,6 +150,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
     String? tintColor,
     String? soundPath,
     Map<String, dynamic>? uiConfig,
+    Map<String, dynamic>? metadata,
   }) async {
     try {
       final args = <String, dynamic>{
@@ -156,6 +161,7 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
         if (tintColor != null) 'tintColor': tintColor,
         if (soundPath != null) 'soundPath': soundPath,
         if (uiConfig != null) 'uiConfig': uiConfig,
+        if (metadata != null) 'metadata': metadata,
       };
 
       final alarmId = await methodChannel.invokeMethod<String>(

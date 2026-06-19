@@ -1,15 +1,10 @@
-## 0.4.0
-* Add an **"Open app" secondary button** for one-shot and recurrent alarms via `AlarmUIConfig.openAppButton` — the alert shows Open + Stop, and tapping Open foregrounds the app (and stops the alarm).
-* `scheduleRecurrentAlarm` now accepts an **empty `weekdays` set** to fire once at the next occurrence of the given time without repeating, plus a new `Weekday.everyday` convenience for daily alarms.
-* Add **`cancelAll()`** to cancel every scheduled alarm in one call.
-* **Breaking:** `getAuthorizationState()` now returns a typed `AlarmAuthorizationState` enum instead of a raw `int`.
-
 ## 0.3.0
-* **Typed alarm reads.** `getAlarms()` now returns `List<Alarm>` and `alarmUpdates()` emits `AlarmUpdateEvent`s, exposing each alarm's state, schedule (including recurrence weekdays), countdown durations, and persisted label/tint color.
-* Report **all** alarm states, including `countdown` and `alerting` (previously surfaced as `unknown`). Alarms with an unrecognized state or schedule are now kept (as `unknown`) instead of being silently dropped from `getAlarms()`.
-* `alarmUpdates()` now emits `update` events only when an alarm's state, schedule, or countdown duration actually changes.
-* Persisted alarm metadata (label/tint) is cleaned up on cancel and removal, so the App Group no longer accumulates orphaned entries.
-* **Breaking:** `getAlarms()` returns `Future<List<Alarm>>` (was `Future<List<Map<String, dynamic>>>`) and `alarmUpdates()` returns `Stream<AlarmUpdateEvent>` (was `Stream<dynamic>`).
+* **Breaking:** `getAlarms()` → `Future<List<Alarm>>` and `alarmUpdates()` → `Stream<AlarmUpdateEvent>`, reporting full state (scheduled/countdown/paused/alerting).
+* Custom alarm metadata (`AlarmMetadata`: SF Symbol icon + subtitle) — rendered in the Live Activity and returned by `getAlarms()`.
+* One-time and daily relative alarms (empty weekdays / `Weekday.everyday`); `cancelAll()`.
+* **Breaking:** `getAuthorizationState()` → `AlarmAuthorizationState` (was `int`).
+* Fix Live Activity action buttons clipping their labels (e.g. "Stop" → "St…") — buttons now size to fit their text instead of a fixed width.
+* Fix unreadable default button text colors — pause/resume defaulted to green (invisible on the green resume tint) and are now white.
 
 ## 0.2.0
 * Add **Swift Package Manager** support alongside CocoaPods.

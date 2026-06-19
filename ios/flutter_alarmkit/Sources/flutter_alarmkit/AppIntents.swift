@@ -101,26 +101,3 @@ struct ResumeIntent: LiveActivityIntent {
         self.alarmID = ""
     }
 }
-
-@available(iOS 26.0, *)
-struct OpenAlarmAppIntent: LiveActivityIntent {
-    func perform() throws -> some IntentResult {
-        try AlarmManager.shared.stop(id: parseAlarmUUID(alarmID))
-        return .result()
-    }
-    
-    static var title: LocalizedStringResource = "Open App"
-    static var description = IntentDescription("Opens the app")
-    static var openAppWhenRun = true
-    
-    @Parameter(title: "alarmID")
-    var alarmID: String
-    
-    init(alarmID: String) {
-        self.alarmID = alarmID
-    }
-    
-    init() {
-        self.alarmID = ""
-    }
-}
