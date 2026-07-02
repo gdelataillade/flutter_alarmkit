@@ -160,11 +160,16 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
   }
 
   /// Convert a SwiftUI `Color` into a `#RRGGBB` hex string.
+  /// Components are rounded, not truncated: `x/255` is not exact in floating
+  /// point, so truncation can round-trip a channel one step down (0x5A -> 0x59).
   private func hexString(from color: Color) -> String {
     let uiColor = UIColor(color)
     var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
     uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
-    return String(format: "#%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
+    return String(
+      format: "#%02X%02X%02X",
+      Int((r * 255).rounded()), Int((g * 255).rounded()), Int((b * 255).rounded())
+    )
   }
 
   // MARK: - App Group
@@ -187,7 +192,11 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       let uiColor = UIColor(tintColor)
       var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
       uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
-      return String(format: "#%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
+      // Rounded, not truncated — see hexString(from:).
+      return String(
+        format: "#%02X%02X%02X",
+        Int((r * 255).rounded()), Int((g * 255).rounded()), Int((b * 255).rounded())
+      )
     }
   }
 

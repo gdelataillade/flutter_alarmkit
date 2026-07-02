@@ -30,6 +30,6 @@ Never create Xcode targets or add capabilities by editing `project.pbxproj` — 
 ## Development
 
 - `flutter analyze` must be clean (strict lints incl. `public_member_api_docs`, `always_use_package_imports`).
-- No unit tests; verification is manual on an iOS 26 device via the example app (`example/`), which has buttons exercising every feature — "Custom UI Alarm (15s)" covers all `AlarmUIConfig` fields.
+- Dart unit tests live in `test/` (models, channel decoding, weekday/metadata normalization); `flutter test` must pass. Native/Live Activity behavior has no automated coverage — verify manually on an iOS 26 device via the example app (`example/`), which has buttons exercising every feature — "Custom alarm UI" (15s countdown) covers all `AlarmUIConfig` fields.
 - Test setup-CLI changes against a throwaway `flutter create` project with the plugin as a path dependency; `dart run flutter_alarmkit:setup --doctor` must pass all checks on the example app and on a correctly configured consumer.
 - Supports both Swift Package Manager (`ios/flutter_alarmkit/Package.swift`) and CocoaPods (`ios/flutter_alarmkit.podspec`); both build the same sources under `ios/flutter_alarmkit/Sources/flutter_alarmkit/` and must stay in sync (source path, iOS platform floor, bundled `PrivacyInfo.xcprivacy`). The Widget Extension is a standalone WidgetKit target (its own metadata + intents, no plugin import), so it needs no `Podfile` entry and the setup works end to end under both SPM and CocoaPods.
