@@ -630,7 +630,9 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     }
 
     let label = parseLabel(from: args)
-    let countdownDuration = Alarm.CountdownDuration(preAlert: TimeInterval(preSec), postAlert: TimeInterval(postSec))
+    let countdownDuration = Alarm.CountdownDuration(
+      preAlert: TimeInterval(preSec),
+      postAlert: postSec > 0 ? TimeInterval(postSec) : nil)
     let uiConfigDict = args["uiConfig"] as? [String: Any]
 
     let stopConfig = parseButtonConfig(
@@ -653,13 +655,19 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     let countdownTitle = uiConfigDict?["countdownTitle"] as? String ?? label
     let pausedTitle = uiConfigDict?["pausedTitle"] as? String ?? label
 
+    let alert: AlarmPresentation.Alert = postSec > 0
+      ? AlarmPresentation.Alert(
+          title: LocalizedStringResource(stringLiteral: label),
+          stopButton: stopConfig.toAlarmButton(),
+          secondaryButton: repeatConfig.toAlarmButton(),
+          secondaryButtonBehavior: .countdown
+        )
+      : AlarmPresentation.Alert(
+          title: LocalizedStringResource(stringLiteral: label),
+          stopButton: stopConfig.toAlarmButton()
+        )
     let presentation = AlarmPresentation(
-      alert: AlarmPresentation.Alert(
-        title: LocalizedStringResource(stringLiteral: label),
-        stopButton: stopConfig.toAlarmButton(),
-        secondaryButton: repeatConfig.toAlarmButton(),
-        secondaryButtonBehavior: .countdown
-      ),
+      alert: alert,
       countdown: AlarmPresentation.Countdown(
         title: LocalizedStringResource(stringLiteral: countdownTitle),
         pauseButton: pauseConfig.toAlarmButton()
