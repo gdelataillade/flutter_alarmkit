@@ -1,8 +1,11 @@
 import 'package:flutter_alarmkit/flutter_alarmkit.dart'
-    show Alarm, AlarmUpdateEvent, Weekday;
+    show Alarm, AlarmAuthorizationState, AlarmUpdateEvent, Weekday;
 
 abstract class AlarmRepository {
   Future<bool> requestAuthorization();
+
+  /// The current authorization state, without prompting the user.
+  Future<AlarmAuthorizationState> getAuthorizationState();
 
   /// All alarms currently known to the system.
   Future<List<Alarm>> getAlarms();

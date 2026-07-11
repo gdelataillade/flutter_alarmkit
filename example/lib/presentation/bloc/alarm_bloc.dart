@@ -165,6 +165,20 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
     } catch (e) {
       emit(state.copyWith(platformVersion: 'Failed to get platform version.'));
     }
+
+    // Reflect authorization the user already granted in a previous launch, so
+    // we don't prompt again every time the app opens.
+    try {
+      final authState = await _repository.getAuthorizationState();
+      if (authState == AlarmAuthorizationState.authorized) {
+        emit(state.copyWith(authStatus: 'Granted'));
+      } else if (authState == AlarmAuthorizationState.denied) {
+        emit(state.copyWith(authStatus: 'Denied'));
+      }
+    } catch (_) {
+      // iOS < 26 or channel error; keep the default 'Permission not requested'.
+    }
+
     add(RefreshAlarms());
   }
 

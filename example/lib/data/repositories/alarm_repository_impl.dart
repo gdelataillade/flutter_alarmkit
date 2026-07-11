@@ -12,6 +12,11 @@ class AlarmRepositoryImpl implements AlarmRepository {
   }
 
   @override
+  Future<AlarmAuthorizationState> getAuthorizationState() async {
+    return await _plugin.getAuthorizationState();
+  }
+
+  @override
   Future<List<Alarm>> getAlarms() async {
     return await _plugin.getAlarms();
   }

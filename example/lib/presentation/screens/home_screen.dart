@@ -25,19 +25,30 @@ class _HomeScreenState extends State<HomeScreen> {
     return CupertinoPageScaffold(
       backgroundColor: ExampleTheme.resolve(context, ExampleTheme.canvas),
       child: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
-          children: const [
-            _AppHeader(),
-            SizedBox(height: 20),
-            _StatusSection(),
-            SizedBox(height: 28),
-            AlarmControls(),
-            SizedBox(height: 28),
-            AlarmsList(),
-            SizedBox(height: 20),
-            LogPanel(),
-          ],
+        // The alarm UI stays hidden until permission is granted; only the
+        // header and status/Allow card show beforehand.
+        child: BlocBuilder<AlarmBloc, AlarmState>(
+          buildWhen: (prev, curr) => prev.authStatus != curr.authStatus,
+          builder: (context, state) {
+            final granted = state.authStatus == 'Granted';
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+              children: [
+                const _AppHeader(),
+                const SizedBox(height: 20),
+                const _StatusSection(),
+                if (granted) ...const [
+                  SizedBox(height: 28),
+                  AlarmControls(),
+                  SizedBox(height: 28),
+                  AlarmsList(),
+                  SizedBox(height: 20),
+                  LogPanel(),
+                ] else
+                  const _PermissionHint(),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -89,6 +100,36 @@ class _AppHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _PermissionHint extends StatelessWidget {
+  const _PermissionHint();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(top: 40),
+      child: Column(
+        children: [
+          Icon(
+            CupertinoIcons.bell_slash,
+            color: ExampleTheme.secondaryText,
+            size: 40,
+          ),
+          SizedBox(height: 14),
+          Text(
+            'Grant alarm permission to schedule\nand manage alarms.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: ExampleTheme.secondaryText,
+              fontSize: 15,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
