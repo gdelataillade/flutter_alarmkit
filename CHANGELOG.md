@@ -1,5 +1,6 @@
 ## 0.3.1
-* Fix `setCountdownAlarm` crashing (AlarmKit precondition trap) when `repeatDurationInSeconds` is `0` — a non-repeating countdown now schedules correctly and shows a stop-only alert. Thanks @bboybboy!
+* Fix `setCountdownAlarm` crashing (AlarmKit precondition trap) when `repeatDurationInSeconds` is `0`.
+* Declare the shared `UserDefaults` (App Group) access in the privacy manifests (plugin + widget) for App Store Required Reason API compliance.
 
 ## 0.3.0
 * **Breaking:** `getAlarms()` → `Future<List<Alarm>>` and `alarmUpdates()` → `Stream<AlarmUpdateEvent>`, reporting full state (scheduled/countdown/paused/alerting).

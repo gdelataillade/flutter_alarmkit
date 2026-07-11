@@ -11,8 +11,7 @@
 			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
 			<key>NSPrivacyAccessedAPITypeReasons</key>
 			<array>
-				<!-- 1C8F.1: read/write user defaults shared via an App Group
-				     (button tints + alarm metadata passed to the widget). -->
+				<!-- 1C8F.1: read shared button tints from the App Group. -->
 				<string>1C8F.1</string>
 			</array>
 		</dict>
