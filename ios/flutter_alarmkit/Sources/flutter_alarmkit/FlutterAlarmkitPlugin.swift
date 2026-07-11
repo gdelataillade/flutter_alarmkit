@@ -630,7 +630,13 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     }
 
     let label = parseLabel(from: args)
-    let countdownDuration = Alarm.CountdownDuration(preAlert: TimeInterval(preSec), postAlert: TimeInterval(postSec))
+    // A zero repeat duration means a non-repeating countdown: AlarmKit traps if
+    // a `.countdown` secondary button is paired with a zero/absent postAlert,
+    // so both must be omitted together.
+    let repeats = postSec > 0
+    let countdownDuration = Alarm.CountdownDuration(
+      preAlert: TimeInterval(preSec),
+      postAlert: repeats ? TimeInterval(postSec) : nil)
     let uiConfigDict = args["uiConfig"] as? [String: Any]
 
     let stopConfig = parseButtonConfig(
@@ -657,8 +663,8 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       alert: AlarmPresentation.Alert(
         title: LocalizedStringResource(stringLiteral: label),
         stopButton: stopConfig.toAlarmButton(),
-        secondaryButton: repeatConfig.toAlarmButton(),
-        secondaryButtonBehavior: .countdown
+        secondaryButton: repeats ? repeatConfig.toAlarmButton() : nil,
+        secondaryButtonBehavior: repeats ? .countdown : nil
       ),
       countdown: AlarmPresentation.Countdown(
         title: LocalizedStringResource(stringLiteral: countdownTitle),

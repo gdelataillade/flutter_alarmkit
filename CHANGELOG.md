@@ -1,3 +1,6 @@
+## 0.3.1
+* Fix `setCountdownAlarm` crashing (AlarmKit precondition trap) when `repeatDurationInSeconds` is `0` — a non-repeating countdown now schedules correctly and shows a stop-only alert. Thanks @bboybboy!
+
 ## 0.3.0
 * **Breaking:** `getAlarms()` → `Future<List<Alarm>>` and `alarmUpdates()` → `Stream<AlarmUpdateEvent>`, reporting full state (scheduled/countdown/paused/alerting).
 * Custom alarm metadata (`AlarmMetadata`: SF Symbol icon + subtitle) — rendered in the Live Activity and returned by `getAlarms()`.

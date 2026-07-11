@@ -139,7 +139,10 @@ class FlutterAlarmkit {
   /// Schedules a countdown alarm for the specified duration.
   ///
   /// [countdownDurationInSeconds] is the duration of the countdown in seconds.
-  /// [repeatDurationInSeconds] is the duration of the repeat in seconds.
+  /// [repeatDurationInSeconds] is the duration of the repeat countdown in
+  /// seconds, started when the user taps the repeat button on the alert. Pass
+  /// `0` for a non-repeating countdown (a simple timer): the alert then shows
+  /// only the stop button, and any `repeatButton` in [uiConfig] is ignored.
   /// [label] is an optional string that will be displayed as the alarm title.
   /// [tintColor] is an optional string representing a color that helps users
   /// associate the alarm with your app. Must be in the form `#RRGGBB`

@@ -67,6 +67,21 @@ class _AlarmControlsState extends State<AlarmControls> {
             },
           ),
           _ExampleAction(
+            icon: CupertinoIcons.timer,
+            title: 'Simple timer',
+            subtitle: '15 sec countdown · no repeat',
+            color: CupertinoColors.systemTeal,
+            onPressed: () async {
+              final id = await plugin.setCountdownAlarm(
+                countdownDurationInSeconds: 15,
+                repeatDurationInSeconds: 0,
+                label: 'Simple Timer',
+                tintColor: '#30B0C7',
+              );
+              debugPrint('Simple timer alarm ID: $id');
+            },
+          ),
+          _ExampleAction(
             icon: CupertinoIcons.slider_horizontal_3,
             title: 'Custom alarm UI',
             subtitle: '15 sec countdown · custom buttons',
