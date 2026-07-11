@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'flutter_alarmkit'
-  s.version          = '0.3.0'
+  s.version          = '0.3.1'
   s.summary          = 'Flutter plugin wrapping Apple AlarmKit (iOS 26+) with Live Activity alarms.'
   s.description      = <<-DESC
 Schedule one-shot, countdown, and recurrent AlarmKit alarms that present as Live
