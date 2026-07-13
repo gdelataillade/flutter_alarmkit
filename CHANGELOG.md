@@ -1,3 +1,9 @@
+## 0.4.0
+* **Breaking:** `pauseAlarm`/`resumeAlarm`/`countdownAlarm`/`cancelAlarm`/`stopAlarm` now throw on `UNSUPPORTED_VERSION` (iOS < 26) and `BAD_ARGS` instead of returning `false`; `false` now means only that the alarm doesn't exist or isn't in a controllable state. Wrap these in `try`/`catch` where iOS < 26 is possible.
+* Fix custom alarm sounds not refreshing when the asset content changes, and same-named assets in different folders overwriting each other.
+* Fix button/alarm tint colors being off by one step (now rounded, not truncated).
+* Require Flutter 3.38.0+ (the setup's `AppDelegate` patch relies on `FlutterImplicitEngineDelegate`).
+
 ## 0.3.1
 * Fix `setCountdownAlarm` crashing (AlarmKit precondition trap) when `repeatDurationInSeconds` is `0`.
 * Declare the shared `UserDefaults` (App Group) access in the privacy manifests (plugin + widget) for App Store Required Reason API compliance.

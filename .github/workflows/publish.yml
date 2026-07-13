@@ -38,5 +38,13 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # Gate the publish: a tag on a commit that doesn't analyze cleanly or
+      # pass the unit tests must not reach pub.dev.
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test
+
       - name: Publish
         run: dart pub publish --force
