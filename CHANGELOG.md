@@ -1,3 +1,6 @@
+## 0.3.3
+* Fix custom alarm sounds going stale: the copy in `Library/Sounds` is now refreshed automatically when the asset's content changes (previously the first copy played forever), and copies are keyed by the full asset path so same-named files in different asset folders no longer clobber each other.
+
 ## 0.3.1
 * Fix `setCountdownAlarm` crashing (AlarmKit precondition trap) when `repeatDurationInSeconds` is `0`.
 * Declare the shared `UserDefaults` (App Group) access in the privacy manifests (plugin + widget) for App Store Required Reason API compliance.

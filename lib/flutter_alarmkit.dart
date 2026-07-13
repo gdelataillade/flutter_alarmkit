@@ -103,6 +103,11 @@ class FlutterAlarmkit {
   ///   limit, the system will play the default sound instead.
   /// - **Asset Configuration**: Ensure the file is listed in your `pubspec.yaml`
   ///   under `assets`.
+  /// - **Caching**: The asset is copied into the app's `Library/Sounds` folder
+  ///   the first time an alarm uses it. The copy is keyed by the full asset
+  ///   path and refreshed automatically when the asset's content changes, so
+  ///   same-named files in different folders don't collide and edits to the
+  ///   audio file are picked up on the next schedule.
   ///
   /// **How to convert MP3 to CAF:**
   /// You can use `ffmpeg` or `afconvert` (built-in on macOS):
@@ -165,6 +170,11 @@ class FlutterAlarmkit {
   ///   limit, the system will play the default sound instead.
   /// - **Asset Configuration**: Ensure the file is listed in your `pubspec.yaml`
   ///   under `assets`.
+  /// - **Caching**: The asset is copied into the app's `Library/Sounds` folder
+  ///   the first time an alarm uses it. The copy is keyed by the full asset
+  ///   path and refreshed automatically when the asset's content changes, so
+  ///   same-named files in different folders don't collide and edits to the
+  ///   audio file are picked up on the next schedule.
   ///
   /// **How to convert MP3 to CAF:**
   /// You can use `ffmpeg` or `afconvert` (built-in on macOS):
@@ -223,6 +233,11 @@ class FlutterAlarmkit {
   ///   limit, the system will play the default sound instead.
   /// - **Asset Configuration**: Ensure the file is listed in your `pubspec.yaml`
   ///   under `assets`.
+  /// - **Caching**: The asset is copied into the app's `Library/Sounds` folder
+  ///   the first time an alarm uses it. The copy is keyed by the full asset
+  ///   path and refreshed automatically when the asset's content changes, so
+  ///   same-named files in different folders don't collide and edits to the
+  ///   audio file are picked up on the next schedule.
   ///
   /// **How to convert MP3 to CAF:**
   /// You can use `ffmpeg` or `afconvert` (built-in on macOS):
