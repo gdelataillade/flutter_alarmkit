@@ -279,7 +279,7 @@ class FlutterAlarmkit {
   ///
   /// Returns a [Future] that completes with the list of [Alarm]s, including
   /// each alarm's [AlarmState], schedule, and (for alarms scheduled through
-  /// this plugin) its persisted label and tint color.
+  /// this plugin) its persisted label, tint color, and [AlarmMetadata].
   ///
   /// Throws a [PlatformException] if the platform version is not supported
   /// (iOS < 26.0)
@@ -296,7 +296,8 @@ class FlutterAlarmkit {
   /// canceled, or `false` if it couldn't be (e.g. the alarm doesn't exist).
   ///
   /// Throws a [PlatformException] if the platform version is not supported
-  /// (iOS < 26.0) or [alarmId] is not a valid UUID string.
+  /// (iOS < 26.0) or [alarmId] is not a valid UUID string. Unexpected platform
+  /// or channel errors also propagate.
   Future<bool> cancelAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.cancelAlarm(alarmId: alarmId);
   }
@@ -324,7 +325,8 @@ class FlutterAlarmkit {
   /// isn't in the countdown state).
   ///
   /// Throws a [PlatformException] if the platform version is not supported
-  /// (iOS < 26.0) or [alarmId] is not a valid UUID string.
+  /// (iOS < 26.0) or [alarmId] is not a valid UUID string. Unexpected platform
+  /// or channel errors also propagate.
   Future<bool> pauseAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.pauseAlarm(alarmId: alarmId);
   }
@@ -338,7 +340,8 @@ class FlutterAlarmkit {
   /// isn't in the paused state).
   ///
   /// Throws a [PlatformException] if the platform version is not supported
-  /// (iOS < 26.0) or [alarmId] is not a valid UUID string.
+  /// (iOS < 26.0) or [alarmId] is not a valid UUID string. Unexpected platform
+  /// or channel errors also propagate.
   Future<bool> resumeAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.resumeAlarm(alarmId: alarmId);
   }
@@ -357,7 +360,8 @@ class FlutterAlarmkit {
   /// exist or isn't a countdown alarm).
   ///
   /// Throws a [PlatformException] if the platform version is not supported
-  /// (iOS < 26.0) or [alarmId] is not a valid UUID string.
+  /// (iOS < 26.0) or [alarmId] is not a valid UUID string. Unexpected platform
+  /// or channel errors also propagate.
   Future<bool> countdownAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.countdownAlarm(alarmId: alarmId);
   }
@@ -373,7 +377,8 @@ class FlutterAlarmkit {
   /// stopped, or `false` if it couldn't be (e.g. the alarm doesn't exist).
   ///
   /// Throws a [PlatformException] if the platform version is not supported
-  /// (iOS < 26.0) or [alarmId] is not a valid UUID string.
+  /// (iOS < 26.0) or [alarmId] is not a valid UUID string. Unexpected platform
+  /// or channel errors also propagate.
   Future<bool> stopAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.stopAlarm(alarmId: alarmId);
   }

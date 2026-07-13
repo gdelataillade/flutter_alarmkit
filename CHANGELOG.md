@@ -1,5 +1,5 @@
 ## 0.4.0
-* **Breaking:** `pauseAlarm`/`resumeAlarm`/`countdownAlarm`/`cancelAlarm`/`stopAlarm` now throw on `UNSUPPORTED_VERSION` (iOS < 26) and `BAD_ARGS` instead of returning `false`; `false` now means only that the alarm doesn't exist or isn't in a controllable state. Wrap these in `try`/`catch` where iOS < 26 is possible.
+* **Breaking:** `pauseAlarm`/`resumeAlarm`/`countdownAlarm`/`cancelAlarm`/`stopAlarm` now throw on `UNSUPPORTED_VERSION` (iOS < 26), `BAD_ARGS`, and unexpected channel errors instead of returning `false`; `false` is reserved for an otherwise valid control operation that AlarmKit rejects (typically because the alarm doesn't exist or isn't in a controllable state). Wrap these in `try`/`catch` where iOS < 26 is possible.
 * Fix custom alarm sounds not refreshing when the asset content changes, and same-named assets in different folders overwriting each other.
 * Fix button/alarm tint colors being off by one step (now rounded, not truncated).
 * Require Flutter 3.38.0+ (the setup's `AppDelegate` patch relies on `FlutterImplicitEngineDelegate`).

@@ -1,16 +1,27 @@
-# flutter_alarmkit_example
+# flutter_alarmkit example
 
-Demonstrates how to use the flutter_alarmkit plugin.
+Demonstrates authorization, one-shot and recurrent alarms, repeating and
+non-repeating countdowns, custom sounds and Live Activity UI, alarm metadata,
+typed alarm state, update events, cancellation, and stopping an active alarm.
 
-## Getting Started
+## Run the example
 
-This project is a starting point for a Flutter application.
+The example requires Flutter 3.38.0+, Xcode 26+, and a physical device running
+iOS 26 or newer. AlarmKit behavior cannot be exercised on older iOS versions.
 
-A few resources to get you started if this is your first Flutter project:
+The checked-in iOS project is already configured for the plugin. From this
+directory, verify the setup and run a release build:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```bash
+flutter pub get
+dart run flutter_alarmkit:setup --doctor
+flutter run --release
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Grant alarm permission in the app before using the scheduling controls. The
+quick-start alarms use `assets/marimba.caf`; the additional examples cover
+metadata, a non-repeating timer, custom buttons, and daily/one-time relative
+alarms.
+
+For setup in another app, follow the package's
+[installation guide](../InstallationSteps.md).

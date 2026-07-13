@@ -231,19 +231,29 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
   /// These map to a `false` return; every other code (`UNSUPPORTED_VERSION`,
   /// `BAD_ARGS`, ...) is genuinely exceptional and propagates.
   static const _controlFailureCodes = {
-    'PAUSE_ERROR',
-    'RESUME_ERROR',
-    'COUNTDOWN_ERROR',
-    'CANCEL_ERROR',
-    'STOP_ERROR',
+    'pauseAlarm': 'PAUSE_ERROR',
+    'resumeAlarm': 'RESUME_ERROR',
+    'countdownAlarm': 'COUNTDOWN_ERROR',
+    'cancelAlarm': 'CANCEL_ERROR',
+    'stopAlarm': 'STOP_ERROR',
   };
 
   /// Shared implementation of the five alarm-control methods.
   Future<bool> _controlAlarm(String method, String alarmId) async {
     try {
-      return await methodChannel.invokeMethod<bool>(method, alarmId) ?? false;
+      final controlled = await methodChannel.invokeMethod<bool>(
+        method,
+        alarmId,
+      );
+      if (controlled == null) {
+        throw PlatformException(
+          code: 'UNKNOWN_ERROR',
+          message: '$method returned a null result',
+        );
+      }
+      return controlled;
     } on PlatformException catch (e) {
-      if (_controlFailureCodes.contains(e.code)) {
+      if (_controlFailureCodes[method] == e.code) {
         debugPrint(
           '[FlutterAlarmkit] $method($alarmId) failed: [${e.code}] ${e.message}',
         );

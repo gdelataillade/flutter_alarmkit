@@ -30,6 +30,11 @@ See more: https://developer.apple.com/documentation/alarmkit
 
 ## Installation
 
+Requirements: Flutter 3.38.0 or newer, Xcode 26 or newer, and an iOS 26+
+device to use AlarmKit. Your app may still support older iOS versions, but
+AlarmKit calls made on iOS versions below 26 throw a `PlatformException` with
+the code `UNSUPPORTED_VERSION`.
+
 Please carefully follow the installation steps in [InstallationSteps.md](InstallationSteps.md). Most of it is automated:
 
 ```bash
@@ -67,7 +72,7 @@ try {
 `getAlarms()` returns the alarms currently known to the system as typed
 [`Alarm`] objects — including each alarm's lifecycle state, schedule, countdown
 durations, and (for alarms scheduled through this plugin) its label and tint
-color:
+color and any `AlarmMetadata`:
 
 ```dart
 final alarms = await FlutterAlarmkit().getAlarms();
@@ -145,6 +150,35 @@ final alarmId = await FlutterAlarmkit().setCountdownAlarm(
 );
 ```
 
+### Use a custom alarm sound
+
+Add a supported system-sound file (`.caf`, `.aiff`, or `.wav`, under 30
+seconds) to your Flutter assets:
+
+```yaml
+flutter:
+  assets:
+    - assets/sounds/alarm.caf
+```
+
+Then pass its full asset path to any scheduling method:
+
+```dart
+await FlutterAlarmkit().scheduleOneShotAlarm(
+  timestamp: DateTime.now()
+      .add(const Duration(minutes: 1))
+      .millisecondsSinceEpoch
+      .toDouble(),
+  label: 'Wake up',
+  soundPath: 'assets/sounds/alarm.caf',
+);
+```
+
+The plugin copies the asset to the app's `Library/Sounds` directory. Copies
+are keyed by the full asset path, so same-named files in different folders do
+not overwrite one another. If the bundled asset's content changes at the same
+path, the copy is refreshed the next time an alarm using it is scheduled.
+
 ### Schedule a Recurrent Alarm
 
 To schedule a recurrent alarm:
@@ -220,27 +254,47 @@ await FlutterAlarmkit().scheduleOneShotAlarm(
 
 The default widget renders the icon and subtitle; you can change *how* they render by editing your generated `AlarmkitWidget` sources. Adding entirely new metadata fields also requires changing the plugin's Swift struct.
 
-### Cancel an Alarm
+### Control an existing alarm
 
-To cancel an alarm:
+The control methods return `true` when AlarmKit performs the operation. They
+return `false` when AlarmKit rejects an otherwise valid operation, typically
+because the alarm no longer exists or is not in the required state:
 
 ```dart
-await FlutterAlarmkit().cancelAlarm(alarmId: alarmId);
+final alarmkit = FlutterAlarmkit();
+
+final paused = await alarmkit.pauseAlarm(alarmId: alarmId);
+final resumed = await alarmkit.resumeAlarm(alarmId: alarmId);
+final restarted = await alarmkit.countdownAlarm(alarmId: alarmId);
+final canceled = await alarmkit.cancelAlarm(alarmId: alarmId);
+final stopped = await alarmkit.stopAlarm(alarmId: alarmId);
 ```
 
-Or cancel every scheduled alarm at once:
+These calls throw a `PlatformException` for invalid arguments (`BAD_ARGS`), on
+iOS versions below 26 (`UNSUPPORTED_VERSION`), and for unexpected channel
+errors. If your app supports older iOS versions, handle the exception:
+
+```dart
+import 'package:flutter/services.dart';
+
+try {
+  final stopped = await FlutterAlarmkit().stopAlarm(alarmId: alarmId);
+  if (!stopped) {
+    print('Alarm was not found or could not be stopped in its current state');
+  }
+} on PlatformException catch (error) {
+  print('Could not control alarm: ${error.code} — ${error.message}');
+}
+```
+
+To cancel every scheduled alarm at once:
 
 ```dart
 await FlutterAlarmkit().cancelAll();
 ```
 
-### Stop an Alarm
-
-To stop an alarm:
-
-```dart
-await FlutterAlarmkit().stopAlarm(alarmId: alarmId);
-```
+`cancelAll()` throws `CANCEL_ALL_ERROR` if one or more alarms could not be
+canceled; the exception's `details` contains the affected alarm IDs.
 
 ## Contributing
 
