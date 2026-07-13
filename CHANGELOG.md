@@ -1,3 +1,7 @@
+## 0.3.2
+* Fix button/alarm tint hex colors (persisted for `getAlarms()` and the widget) coming back one step low — channels are now rounded instead of truncated (e.g. `#FF5A3C` no longer round-trips as `#FF593C`).
+* Raise the minimum Flutter version to 3.38.0 — the setup's `AppDelegate` patch relies on `FlutterImplicitEngineDelegate`, introduced in Flutter 3.38. `pub get` now fails early instead of `AppDelegate.swift` failing to compile.
+
 ## 0.3.1
 * Fix `setCountdownAlarm` crashing (AlarmKit precondition trap) when `repeatDurationInSeconds` is `0`.
 * Declare the shared `UserDefaults` (App Group) access in the privacy manifests (plugin + widget) for App Store Required Reason API compliance.
