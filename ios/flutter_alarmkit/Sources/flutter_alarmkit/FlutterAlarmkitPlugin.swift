@@ -69,6 +69,9 @@ private class UnsupportedVersionStreamHandler: NSObject, FlutterStreamHandler {
 public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
   // Store the registrar as a static property
   private static var registrar: FlutterPluginRegistrar?
+  // Scheduling calls can overlap. Serialize reads and writes in Library/Sounds
+  // so two alarms using the same asset cannot race while refreshing its copy.
+  private static let soundCacheLock = NSLock()
   
   public static func register(with registrar: FlutterPluginRegistrar) {
     // Store the registrar for asset lookup
@@ -448,6 +451,9 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     guard let assetPath = assetPath, !assetPath.isEmpty else {
       return .default
     }
+
+    Self.soundCacheLock.lock()
+    defer { Self.soundCacheLock.unlock() }
 
     // 1. Derive the copy's name from the full asset path, not just the
     // basename, so two assets with the same filename in different folders

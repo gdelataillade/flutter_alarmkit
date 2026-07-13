@@ -12,15 +12,11 @@ let package = Package(
         // If the plugin name contains "_", replace with "-" for the library name.
         .library(name: "flutter-alarmkit", targets: ["flutter_alarmkit"])
     ],
-    dependencies: [
-        .package(name: "FlutterFramework", path: "../FlutterFramework")
-    ],
+    dependencies: [],
     targets: [
         .target(
             name: "flutter_alarmkit",
-            dependencies: [
-                .product(name: "FlutterFramework", package: "FlutterFramework")
-            ],
+            dependencies: [],
             resources: [
                 // The plugin reads/writes shared UserDefaults (a required-reason API) to pass
                 // button tint colors to the Live Activity widget, so the privacy manifest is
