@@ -308,17 +308,29 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
     CancelAlarm event,
     Emitter<AlarmState> emit,
   ) async {
-    final canceled = await _repository.cancelAlarm(alarmId: event.alarmId);
-    emit(state.copyWith(scheduleStatus: canceled ? 'Alarm canceled' : 'Error'));
-    add(RefreshAlarms());
+    try {
+      final canceled = await _repository.cancelAlarm(alarmId: event.alarmId);
+      emit(state.copyWith(
+        scheduleStatus: canceled ? 'Alarm canceled' : 'Alarm not found',
+      ));
+      add(RefreshAlarms());
+    } catch (e) {
+      emit(state.copyWith(scheduleStatus: 'Error: $e'));
+    }
   }
 
   Future<void> _onStopAlarm(
     StopAlarm event,
     Emitter<AlarmState> emit,
   ) async {
-    final stopped = await _repository.stopAlarm(alarmId: event.alarmId);
-    emit(state.copyWith(scheduleStatus: stopped ? 'Alarm stopped' : 'Error'));
-    add(RefreshAlarms());
+    try {
+      final stopped = await _repository.stopAlarm(alarmId: event.alarmId);
+      emit(state.copyWith(
+        scheduleStatus: stopped ? 'Alarm stopped' : 'Alarm not found',
+      ));
+      add(RefreshAlarms());
+    } catch (e) {
+      emit(state.copyWith(scheduleStatus: 'Error: $e'));
+    }
   }
 }

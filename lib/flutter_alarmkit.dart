@@ -278,8 +278,10 @@ class FlutterAlarmkit {
   /// [alarmId] is the UUID of the alarm to cancel.
   ///
   /// Returns a [Future<bool>] that completes with `true` if the alarm was
-  /// canceled, `false` if the operation failed (e.g. the alarm doesn't exist, or the
-  /// system rejected the request).
+  /// canceled, or `false` if it couldn't be (e.g. the alarm doesn't exist).
+  ///
+  /// Throws a [PlatformException] if the platform version is not supported
+  /// (iOS < 26.0) or [alarmId] is not a valid UUID string.
   Future<bool> cancelAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.cancelAlarm(alarmId: alarmId);
   }
@@ -303,8 +305,11 @@ class FlutterAlarmkit {
   /// [alarmId] is the UUID of the alarm to pause.
   ///
   /// Returns a [Future<bool>] that completes with `true` if the alarm was
-  /// paused, `false` if the operation failed (e.g. the alarm doesn't exist, or the
-  /// system rejected the request).
+  /// paused, or `false` if it couldn't be (e.g. the alarm doesn't exist or
+  /// isn't in the countdown state).
+  ///
+  /// Throws a [PlatformException] if the platform version is not supported
+  /// (iOS < 26.0) or [alarmId] is not a valid UUID string.
   Future<bool> pauseAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.pauseAlarm(alarmId: alarmId);
   }
@@ -314,8 +319,11 @@ class FlutterAlarmkit {
   /// [alarmId] is the UUID of the alarm to resume.
   ///
   /// Returns a [Future<bool>] that completes with `true` if the alarm was
-  /// resumed, `false` if the operation failed (e.g. the alarm doesn't exist, or the
-  /// system rejected the request).
+  /// resumed, or `false` if it couldn't be (e.g. the alarm doesn't exist or
+  /// isn't in the paused state).
+  ///
+  /// Throws a [PlatformException] if the platform version is not supported
+  /// (iOS < 26.0) or [alarmId] is not a valid UUID string.
   Future<bool> resumeAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.resumeAlarm(alarmId: alarmId);
   }
@@ -329,8 +337,12 @@ class FlutterAlarmkit {
   ///
   /// [alarmId] is the UUID of the alarm to restart the countdown for.
   ///
-  /// Returns a [Future<bool>] that completes with `true` on success,
-  /// `false` if the operation failed (e.g. the alarm doesn't exist).
+  /// Returns a [Future<bool>] that completes with `true` on success, or
+  /// `false` if the countdown couldn't be restarted (e.g. the alarm doesn't
+  /// exist or isn't a countdown alarm).
+  ///
+  /// Throws a [PlatformException] if the platform version is not supported
+  /// (iOS < 26.0) or [alarmId] is not a valid UUID string.
   Future<bool> countdownAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.countdownAlarm(alarmId: alarmId);
   }
@@ -343,8 +355,10 @@ class FlutterAlarmkit {
   /// [alarmId] is the UUID of the alarm to stop.
   ///
   /// Returns a [Future<bool>] that completes with `true` if the alarm was
-  /// stopped, `false` if the operation failed (e.g. the alarm doesn't exist, or the
-  /// system rejected the request).
+  /// stopped, or `false` if it couldn't be (e.g. the alarm doesn't exist).
+  ///
+  /// Throws a [PlatformException] if the platform version is not supported
+  /// (iOS < 26.0) or [alarmId] is not a valid UUID string.
   Future<bool> stopAlarm({required String alarmId}) {
     return FlutterAlarmkitPlatform.instance.stopAlarm(alarmId: alarmId);
   }

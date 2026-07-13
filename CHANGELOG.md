@@ -1,3 +1,6 @@
+## 0.4.0
+* **Breaking:** `pauseAlarm`/`resumeAlarm`/`countdownAlarm`/`cancelAlarm`/`stopAlarm` no longer swallow every `PlatformException` as `false`. A `false` return now strictly means "the alarm doesn't exist or isn't in a state the operation applies to"; genuinely exceptional failures — `UNSUPPORTED_VERSION` (iOS < 26) and `BAD_ARGS` (malformed alarm ID) — now throw, matching the schedule methods. **Migration:** if you call these where iOS < 26 is possible, wrap them in `try`/`catch` on `PlatformException` (or gate the calls on `getAuthorizationState()`).
+
 ## 0.3.1
 * Fix `setCountdownAlarm` crashing (AlarmKit precondition trap) when `repeatDurationInSeconds` is `0`.
 * Declare the shared `UserDefaults` (App Group) access in the privacy manifests (plugin + widget) for App Store Required Reason API compliance.
