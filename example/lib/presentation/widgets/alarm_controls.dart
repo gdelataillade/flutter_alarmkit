@@ -221,11 +221,11 @@ class _AlarmControlsState extends State<AlarmControls> {
                       children: [
                         const Icon(CupertinoIcons.square_grid_2x2, size: 19),
                         const SizedBox(width: 11),
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'More examples',
                             style: TextStyle(
-                              color: CupertinoColors.label,
+                              color: CupertinoColors.label.resolveFrom(context),
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
@@ -443,8 +443,8 @@ class _ExampleRow extends StatelessWidget {
                 children: [
                   Text(
                     action.title,
-                    style: const TextStyle(
-                      color: CupertinoColors.label,
+                    style: TextStyle(
+                      color: CupertinoColors.label.resolveFrom(context),
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
