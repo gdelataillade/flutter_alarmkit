@@ -198,66 +198,20 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
   }
 
   @override
-  Future<bool> pauseAlarm({required String alarmId}) async {
-    try {
-      return await methodChannel.invokeMethod<bool>('pauseAlarm', alarmId) ??
-          false;
-    } on PlatformException catch (e) {
-      debugPrint(
-        '[FlutterAlarmkit] Failed to pause alarm $alarmId: [${e.code}] ${e.message}',
-      );
-      return false;
-    }
-  }
+  Future<bool> pauseAlarm({required String alarmId}) =>
+      _controlAlarm('pauseAlarm', alarmId);
 
   @override
-  Future<bool> resumeAlarm({required String alarmId}) async {
-    try {
-      return await methodChannel.invokeMethod<bool>('resumeAlarm', alarmId) ??
-          false;
-    } on PlatformException catch (e) {
-      debugPrint(
-        '[FlutterAlarmkit] Failed to resume alarm $alarmId: [${e.code}] ${e.message}',
-      );
-      return false;
-    }
-  }
+  Future<bool> resumeAlarm({required String alarmId}) =>
+      _controlAlarm('resumeAlarm', alarmId);
 
   @override
-  Future<bool> countdownAlarm({required String alarmId}) async {
-    try {
-      return await methodChannel.invokeMethod<bool>(
-            'countdownAlarm',
-            alarmId,
-          ) ??
-          false;
-    } on PlatformException catch (e) {
-      debugPrint(
-        '[FlutterAlarmkit] Failed to countdown alarm $alarmId: [${e.code}] ${e.message}',
-      );
-      return false;
-    }
-  }
+  Future<bool> countdownAlarm({required String alarmId}) =>
+      _controlAlarm('countdownAlarm', alarmId);
 
   @override
-  Future<bool> cancelAlarm({required String alarmId}) async {
-    try {
-      final result =
-          await methodChannel.invokeMethod<bool>('cancelAlarm', alarmId) ??
-          false;
-
-      debugPrint(
-        '[FlutterAlarmkit] Alarm $alarmId was cancelled successfully',
-      );
-
-      return result;
-    } on PlatformException catch (e) {
-      debugPrint(
-        '[FlutterAlarmkit] Failed to cancel alarm $alarmId: [${e.code}] ${e.message}',
-      );
-      return false;
-    }
-  }
+  Future<bool> cancelAlarm({required String alarmId}) =>
+      _controlAlarm('cancelAlarm', alarmId);
 
   @override
   Future<void> cancelAll() async {
@@ -269,23 +223,33 @@ class MethodChannelFlutterAlarmkit extends FlutterAlarmkitPlatform {
   }
 
   @override
-  Future<bool> stopAlarm({required String alarmId}) async {
+  Future<bool> stopAlarm({required String alarmId}) =>
+      _controlAlarm('stopAlarm', alarmId);
+
+  /// Error codes the native side raises when an alarm can't be controlled —
+  /// it doesn't exist, or it isn't in a state the operation applies to.
+  /// These map to a `false` return; every other code (`UNSUPPORTED_VERSION`,
+  /// `BAD_ARGS`, ...) is genuinely exceptional and propagates.
+  static const _controlFailureCodes = {
+    'PAUSE_ERROR',
+    'RESUME_ERROR',
+    'COUNTDOWN_ERROR',
+    'CANCEL_ERROR',
+    'STOP_ERROR',
+  };
+
+  /// Shared implementation of the five alarm-control methods.
+  Future<bool> _controlAlarm(String method, String alarmId) async {
     try {
-      final stopped =
-          await methodChannel.invokeMethod<bool>('stopAlarm', alarmId) ?? false;
-
-      if (stopped) {
-        debugPrint(
-          '[FlutterAlarmkit] Alarm $alarmId was stopped successfully',
-        );
-      }
-
-      return stopped;
+      return await methodChannel.invokeMethod<bool>(method, alarmId) ?? false;
     } on PlatformException catch (e) {
-      debugPrint(
-        '[FlutterAlarmkit] Failed to stop alarm $alarmId: [${e.code}] ${e.message}',
-      );
-      return false;
+      if (_controlFailureCodes.contains(e.code)) {
+        debugPrint(
+          '[FlutterAlarmkit] $method($alarmId) failed: [${e.code}] ${e.message}',
+        );
+        return false;
+      }
+      _rethrowMapped(e);
     }
   }
 

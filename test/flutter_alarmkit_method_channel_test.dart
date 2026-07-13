@@ -127,6 +127,86 @@ void main() {
     );
   });
 
+  group('alarm control error contract', () {
+    // Each control method mapped to the native error code that means
+    // "alarm not found / not in a controllable state".
+    final controls = <String, ({Future<bool> Function() call, String code})>{
+      'pauseAlarm': (
+        call: () => platform.pauseAlarm(alarmId: 'id-1'),
+        code: 'PAUSE_ERROR',
+      ),
+      'resumeAlarm': (
+        call: () => platform.resumeAlarm(alarmId: 'id-1'),
+        code: 'RESUME_ERROR',
+      ),
+      'countdownAlarm': (
+        call: () => platform.countdownAlarm(alarmId: 'id-1'),
+        code: 'COUNTDOWN_ERROR',
+      ),
+      'cancelAlarm': (
+        call: () => platform.cancelAlarm(alarmId: 'id-1'),
+        code: 'CANCEL_ERROR',
+      ),
+      'stopAlarm': (
+        call: () => platform.stopAlarm(alarmId: 'id-1'),
+        code: 'STOP_ERROR',
+      ),
+    };
+
+    for (final MapEntry(key: method, value: control) in controls.entries) {
+      test('$method returns true when the platform succeeds', () async {
+        messenger.setMockMethodCallHandler(channel, (call) async {
+          expect(call.method, method);
+          expect(call.arguments, 'id-1');
+          return true;
+        });
+
+        expect(await control.call(), isTrue);
+      });
+
+      test('$method returns false on ${control.code}', () async {
+        messenger.setMockMethodCallHandler(channel, (call) async {
+          throw PlatformException(code: control.code, message: 'not found');
+        });
+
+        expect(await control.call(), isFalse);
+      });
+
+      test('$method rethrows UNSUPPORTED_VERSION with the mapped message',
+          () async {
+        messenger.setMockMethodCallHandler(channel, (call) async {
+          throw PlatformException(code: 'UNSUPPORTED_VERSION');
+        });
+
+        await expectLater(
+          control.call(),
+          throwsA(
+            isA<PlatformException>()
+                .having((e) => e.code, 'code', 'UNSUPPORTED_VERSION')
+                .having(
+                  (e) => e.message,
+                  'message',
+                  'AlarmKit is only available on iOS 26.0 and above',
+                ),
+          ),
+        );
+      });
+
+      test('$method rethrows BAD_ARGS', () async {
+        messenger.setMockMethodCallHandler(channel, (call) async {
+          throw PlatformException(code: 'BAD_ARGS', message: 'bad id');
+        });
+
+        await expectLater(
+          control.call(),
+          throwsA(
+            isA<PlatformException>().having((e) => e.code, 'code', 'BAD_ARGS'),
+          ),
+        );
+      });
+    }
+  });
+
   test('schedule forwards the metadata map into the call arguments', () async {
     Map<dynamic, dynamic>? captured;
     messenger.setMockMethodCallHandler(channel, (call) async {

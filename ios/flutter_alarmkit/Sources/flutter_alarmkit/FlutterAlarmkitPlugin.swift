@@ -1,5 +1,6 @@
 import Flutter
 import ActivityKit
+import CryptoKit
 import UIKit
 import AlarmKit
 import SwiftUI
@@ -160,11 +161,16 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
   }
 
   /// Convert a SwiftUI `Color` into a `#RRGGBB` hex string.
+  /// Components are rounded, not truncated: `x/255` is not exact in floating
+  /// point, so truncation can round-trip a channel one step down (0x5A -> 0x59).
   private func hexString(from color: Color) -> String {
     let uiColor = UIColor(color)
     var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
     uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
-    return String(format: "#%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
+    return String(
+      format: "#%02X%02X%02X",
+      Int((r * 255).rounded()), Int((g * 255).rounded()), Int((b * 255).rounded())
+    )
   }
 
   // MARK: - App Group
@@ -187,7 +193,11 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       let uiColor = UIColor(tintColor)
       var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
       uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
-      return String(format: "#%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
+      // Rounded, not truncated — see hexString(from:).
+      return String(
+        format: "#%02X%02X%02X",
+        Int((r * 255).rounded()), Int((g * 255).rounded()), Int((b * 255).rounded())
+      )
     }
   }
 
@@ -439,9 +449,14 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       return .default
     }
 
-    // 1. Get the filename from the asset path (e.g., "assets/marimba.caf" -> "marimba.caf")
-    let fileName = URL(fileURLWithPath: assetPath).lastPathComponent
-    
+    // 1. Derive the copy's name from the full asset path, not just the
+    // basename, so two assets with the same filename in different folders
+    // (e.g. "assets/soft/ring.caf" and "assets/loud/ring.caf") get distinct
+    // copies instead of silently clobbering each other. The name is internal —
+    // AlarmKit only uses it to locate the copy in Library/Sounds.
+    let baseName = URL(fileURLWithPath: assetPath).lastPathComponent
+    let fileName = "\(Self.stableDigest(of: assetPath))-\(baseName)"
+
     // 2. Define the target URL in Library/Sounds
     let fileManager = FileManager.default
     guard let libraryUrl = fileManager.urls(for: .libraryDirectory, in: .userDomainMask).first else {
@@ -450,37 +465,52 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     }
     let soundsUrl = libraryUrl.appendingPathComponent("Sounds")
     let destinationUrl = soundsUrl.appendingPathComponent(fileName)
+    let copyExists = fileManager.fileExists(atPath: destinationUrl.path)
 
-    // 3. Copy the file if it's not already there
-    if !fileManager.fileExists(atPath: destinationUrl.path) {
-        // Check if registrar is initialized
-        if AlarmkitPluginImpl.registrar == nil {
-            NSLog("[flutter_alarmkit] Plugin registrar unavailable; using default sound")
-            return .default
-        }
-
-        // Look up the actual path in the Flutter assets
-        guard let key = AlarmkitPluginImpl.registrar?.lookupKey(forAsset: assetPath),
-              let sourcePath = Bundle.main.path(forResource: key, ofType: nil) else {
-            NSLog("[flutter_alarmkit] Could not find sound asset '\(assetPath)' in bundle; using default sound")
-            return .default
-        }
-
-        do {
-            // Create Library/Sounds directory if needed
-            try fileManager.createDirectory(at: soundsUrl, withIntermediateDirectories: true)
-
-            // Copy the file
-            try fileManager.copyItem(at: URL(fileURLWithPath: sourcePath), to: destinationUrl)
-        } catch {
-            NSLog("[flutter_alarmkit] Failed to copy sound asset; using default sound: \(error)")
-            return .default
-      }
+    // 3. Look up the asset in the bundle — needed even when a copy already
+    // exists, so an asset whose content changed under the same path is
+    // detected and re-copied instead of the stale copy playing forever.
+    guard let registrar = AlarmkitPluginImpl.registrar else {
+        NSLog("[flutter_alarmkit] Plugin registrar unavailable; using \(copyExists ? "existing copy" : "default sound")")
+        return copyExists ? .named(fileName) : .default
+    }
+    let key = registrar.lookupKey(forAsset: assetPath)
+    guard let sourcePath = Bundle.main.path(forResource: key, ofType: nil) else {
+        NSLog("[flutter_alarmkit] Could not find sound asset '\(assetPath)' in bundle; using \(copyExists ? "existing copy" : "default sound")")
+        return copyExists ? .named(fileName) : .default
     }
 
-    // 4. Return just the filename.
+    // 4. Copy when missing or stale. contentsEqual short-circuits on a size
+    // mismatch and alarm sounds are under 30s, so the compare stays cheap.
+    do {
+        if copyExists {
+            if fileManager.contentsEqual(atPath: sourcePath, andPath: destinationUrl.path) {
+                return .named(fileName)
+            }
+            try fileManager.removeItem(at: destinationUrl)
+        }
+
+        // Create Library/Sounds directory if needed
+        try fileManager.createDirectory(at: soundsUrl, withIntermediateDirectories: true)
+
+        // Copy the file
+        try fileManager.copyItem(at: URL(fileURLWithPath: sourcePath), to: destinationUrl)
+    } catch {
+        NSLog("[flutter_alarmkit] Failed to copy sound asset; using default sound: \(error)")
+        return .default
+    }
+
+    // 5. Return just the filename.
     // The system automatically looks in the main bundle and Library/Sounds.
     return .named(fileName)
+  }
+
+  /// Short stable digest of an asset path, used to namespace its copy in
+  /// Library/Sounds. Must be deterministic across launches (Swift's `Hasher`
+  /// is seeded per process), hence SHA-256 rather than `hashValue`.
+  private static func stableDigest(of string: String) -> String {
+    let digest = SHA256.hash(data: Data(string.utf8))
+    return digest.prefix(4).map { String(format: "%02x", $0) }.joined()
   }
 
   private func decodeWeekdays(from mask: Int) -> [Locale.Weekday] {
