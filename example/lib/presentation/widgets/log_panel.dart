@@ -29,11 +29,11 @@ class _LogPanelState extends State<LogPanel> {
                 const Icon(CupertinoIcons.chevron_left_slash_chevron_right,
                     size: 19),
                 const SizedBox(width: 11),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Plugin logs',
                     style: TextStyle(
-                      color: CupertinoColors.label,
+                      color: CupertinoColors.label.resolveFrom(context),
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
