@@ -15,7 +15,7 @@ import SwiftUI
 /// error instead of touching an unavailable symbol.
 public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
-    if #available(iOS 26.0, *) {
+    if #available(iOS 26.0, macCatalyst 26.0, *) {
       AlarmkitPluginImpl.register(with: registrar)
     } else {
       let channel = FlutterMethodChannel(
@@ -65,7 +65,7 @@ private class UnsupportedVersionStreamHandler: NSObject, FlutterStreamHandler {
   }
 }
 
-@available(iOS 26.0, *)
+@available(iOS 26.0, macCatalyst 26.0, *)
 public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
   // Store the registrar as a static property
   private static var registrar: FlutterPluginRegistrar?
