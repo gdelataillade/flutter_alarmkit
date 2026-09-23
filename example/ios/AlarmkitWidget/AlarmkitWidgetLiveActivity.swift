@@ -8,6 +8,7 @@ import WidgetKit
 // Field set must stay in sync with the plugin's copy
 // (ios/flutter_alarmkit/Sources/flutter_alarmkit/NeverMetadata.swift).
 @available(iOS 26.0, *)
+@available(macCatalyst, unavailable)
 public struct NeverMetadata: AlarmMetadata, Codable, Hashable {
     public var icon: String?
     public var subtitle: String?
@@ -18,6 +19,7 @@ public struct NeverMetadata: AlarmMetadata, Codable, Hashable {
 }
 
 @available(iOS 26.0, *)
+@available(macCatalyst, unavailable)
 struct AlarmkitLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: AlarmAttributes<NeverMetadata>.self) { context in
@@ -140,6 +142,7 @@ struct AlarmkitLiveActivity: Widget {
 // MARK: - Progress Indicator
 
 @available(iOS 26.0, *)
+@available(macCatalyst, unavailable)
 struct AlarmProgressView: View {
     let mode: AlarmPresentationState.Mode
     let tint: Color
@@ -177,6 +180,7 @@ struct AlarmProgressView: View {
 // MARK: - Tint Color Helpers
 
 @available(iOS 26.0, *)
+@available(macCatalyst, unavailable)
 private func colorFromHex(_ hex: String) -> Color? {
     var hexString = hex.trimmingCharacters(in: .whitespacesAndNewlines)
     if hexString.hasPrefix("#") { hexString.removeFirst() }
@@ -188,6 +192,7 @@ private func colorFromHex(_ hex: String) -> Color? {
 }
 
 @available(iOS 26.0, *)
+@available(macCatalyst, unavailable)
 private func loadButtonTints(for alarmID: UUID) -> [String: String] {
     let defaults = UserDefaults(suiteName: "group.flutter-alarmkit")
     return defaults?.dictionary(forKey: "alarm_tints_\(alarmID.uuidString)") as? [String: String] ?? [:]
@@ -196,6 +201,7 @@ private func loadButtonTints(for alarmID: UUID) -> [String: String] {
 // MARK: - Control Buttons
 
 @available(iOS 26.0, *)
+@available(macCatalyst, unavailable)
 struct AlarmControls: View {
     let presentation: AlarmPresentation
     let state: AlarmPresentationState
@@ -259,6 +265,7 @@ struct AlarmControls: View {
 }
 
 @available(iOS 26.0, *)
+@available(macCatalyst, unavailable)
 struct ButtonView<I: AppIntent>: View {
     let config: AlarmButton
     let intent: I
