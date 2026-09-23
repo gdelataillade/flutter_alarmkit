@@ -1,4 +1,4 @@
-## Unreleased
+## 0.4.1
 * Treat Mac Catalyst as unsupported instead of declaring AlarmKit available there, and add a native compiler check for the iOS and Catalyst availability paths.
 
 ## 0.4.0
