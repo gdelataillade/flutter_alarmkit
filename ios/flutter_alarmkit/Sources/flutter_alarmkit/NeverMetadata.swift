@@ -8,6 +8,7 @@ import AlarmKit
 // Field set must stay in sync with the copies in the widget templates
 // (ios/WidgetTemplates/ and example/ios/AlarmkitWidget/).
 @available(iOS 26.0, *)
+@available(macCatalyst, unavailable)
 struct NeverMetadata: AlarmMetadata, Codable, Hashable {
   var icon: String?
   var subtitle: String?

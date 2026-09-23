@@ -1,0 +1,32 @@
+name: Native availability
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/native-availability.yml'
+      - 'ios/flutter_alarmkit/Sources/flutter_alarmkit/**'
+      - 'tool/check_native_availability.sh'
+      - 'tool/native_availability/**'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/native-availability.yml'
+      - 'ios/flutter_alarmkit/Sources/flutter_alarmkit/**'
+      - 'tool/check_native_availability.sh'
+      - 'tool/native_availability/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  typecheck:
+    name: Type-check iOS and Catalyst paths
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Check native availability
+        run: tool/check_native_availability.sh

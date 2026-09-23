@@ -2,6 +2,7 @@ import Flutter
 import AlarmKit
 
 @available(iOS 26.0, *)
+@available(macCatalyst, unavailable)
 class AlarmUpdateStreamHandler: NSObject, FlutterStreamHandler {
     private var streamTask: Task<Void, Never>?
 

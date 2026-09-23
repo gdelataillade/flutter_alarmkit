@@ -1,3 +1,6 @@
+## Unreleased
+* Treat Mac Catalyst as unsupported instead of declaring AlarmKit available there, and add a native compiler check for the iOS and Catalyst availability paths.
+
 ## 0.4.0
 * **Breaking:** `pauseAlarm`/`resumeAlarm`/`countdownAlarm`/`cancelAlarm`/`stopAlarm` now throw on `UNSUPPORTED_VERSION` (iOS < 26), `BAD_ARGS`, and unexpected channel errors instead of returning `false`; `false` is reserved for an otherwise valid control operation that AlarmKit rejects (typically because the alarm doesn't exist or isn't in a controllable state). Wrap these in `try`/`catch` where iOS < 26 is possible.
 * Fix custom alarm sounds not refreshing when the asset content changes, and same-named assets in different folders overwriting each other.
