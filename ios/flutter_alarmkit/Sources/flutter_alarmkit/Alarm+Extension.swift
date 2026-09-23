@@ -3,6 +3,7 @@ import AlarmKit
 import SwiftUI
 
 @available(iOS 26.0, *)
+@available(macCatalyst, unavailable)
 extension Alarm {
   /// Serializes this alarm into the dictionary contract consumed by the Dart
   /// `Alarm.fromMap`. Never returns `nil`: an unrecognized state or schedule
@@ -87,6 +88,7 @@ extension Alarm {
 /// plugin (inverse of `decodeWeekdays` in `FlutterAlarmkitPlugin.swift`, and
 /// matching the Dart `Weekday.toBitmask` ordering).
 @available(iOS 26.0, *)
+@available(macCatalyst, unavailable)
 private func encodeWeekdays(_ days: [Locale.Weekday]) -> Int {
     var mask = 0
     for day in days {

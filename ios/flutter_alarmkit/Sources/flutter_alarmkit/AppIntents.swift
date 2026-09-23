@@ -2,11 +2,13 @@ import AlarmKit
 import AppIntents
 
 @available(iOS 26.0, *)
+@available(macCatalyst, unavailable)
 private enum AlarmIntentError: Error {
     case invalidAlarmID
 }
 
 @available(iOS 26.0, *)
+@available(macCatalyst, unavailable)
 private func parseAlarmUUID(_ alarmID: String) throws -> UUID {
     guard let uuid = UUID(uuidString: alarmID) else {
         throw AlarmIntentError.invalidAlarmID
@@ -15,6 +17,7 @@ private func parseAlarmUUID(_ alarmID: String) throws -> UUID {
 }
 
 @available(iOS 26.0, *)
+@available(macCatalyst, unavailable)
 struct PauseIntent: LiveActivityIntent {
     func perform() throws -> some IntentResult {
         try AlarmManager.shared.pause(id: parseAlarmUUID(alarmID))
@@ -37,6 +40,7 @@ struct PauseIntent: LiveActivityIntent {
 }
 
 @available(iOS 26.0, *)
+@available(macCatalyst, unavailable)
 struct StopIntent: LiveActivityIntent {
     func perform() throws -> some IntentResult {
         try AlarmManager.shared.stop(id: parseAlarmUUID(alarmID))
@@ -59,6 +63,7 @@ struct StopIntent: LiveActivityIntent {
 }
 
 @available(iOS 26.0, *)
+@available(macCatalyst, unavailable)
 struct RepeatIntent: LiveActivityIntent {
     func perform() throws -> some IntentResult {
         try AlarmManager.shared.countdown(id: parseAlarmUUID(alarmID))
@@ -81,6 +86,7 @@ struct RepeatIntent: LiveActivityIntent {
 }
 
 @available(iOS 26.0, *)
+@available(macCatalyst, unavailable)
 struct ResumeIntent: LiveActivityIntent {
     func perform() throws -> some IntentResult {
         try AlarmManager.shared.resume(id: parseAlarmUUID(alarmID))

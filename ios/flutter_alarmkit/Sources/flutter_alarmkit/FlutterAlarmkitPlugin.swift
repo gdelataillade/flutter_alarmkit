@@ -5,49 +5,60 @@ import UIKit
 import AlarmKit
 import SwiftUI
 
-/// Public registration entry point, callable on any iOS version.
+/// Public registration entry point, callable on any iOS version and when the
+/// plugin sources are type-checked for Mac Catalyst.
 ///
 /// The generated plugin registrant invokes `register(with:)` unconditionally,
 /// so this shell must NOT be `@available`-gated — otherwise the call traps on
 /// devices below the deployment floor. AlarmKit and the real implementation
-/// (`AlarmkitPluginImpl`) require iOS 26, so on older systems we register a
-/// method-call handler that fails every call with a clear `UNSUPPORTED_VERSION`
-/// error instead of touching an unavailable symbol.
+/// (`AlarmkitPluginImpl`) require iOS 26 and are unavailable on Mac Catalyst,
+/// so unsupported targets register handlers that return `UNSUPPORTED_VERSION`
+/// instead of touching an unavailable symbol.
 public class FlutterAlarmkitPlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
+#if targetEnvironment(macCatalyst)
+    registerUnsupported(with: registrar)
+#else
     if #available(iOS 26.0, *) {
       AlarmkitPluginImpl.register(with: registrar)
     } else {
-      let channel = FlutterMethodChannel(
-        name: "flutter_alarmkit",
-        binaryMessenger: registrar.messenger()
-      )
-      channel.setMethodCallHandler { _, result in
-        result(
-          FlutterError(
-            code: "UNSUPPORTED_VERSION",
-            message: "AlarmKit is only available on iOS 26.0 and above",
-            details: nil
-          )
-        )
-      }
-
-      // Also fail the alarm-updates stream with the same error, so listening to
-      // FlutterAlarmkit().alarmUpdates() on iOS < 26 surfaces UNSUPPORTED_VERSION
-      // rather than a missing-handler error.
-      let eventChannel = FlutterEventChannel(
-        name: "flutter_alarmkit/events",
-        binaryMessenger: registrar.messenger()
-      )
-      eventChannel.setStreamHandler(UnsupportedVersionStreamHandler())
+      registerUnsupported(with: registrar)
     }
+#endif
+  }
+
+  private static func registerUnsupported(
+    with registrar: FlutterPluginRegistrar
+  ) {
+    let channel = FlutterMethodChannel(
+      name: "flutter_alarmkit",
+      binaryMessenger: registrar.messenger()
+    )
+    channel.setMethodCallHandler { _, result in
+      result(
+        FlutterError(
+          code: "UNSUPPORTED_VERSION",
+          message: "AlarmKit is only available on iOS 26.0 and above",
+          details: nil
+        )
+      )
+    }
+
+    // Also fail the alarm-updates stream with the same error, so listening to
+    // FlutterAlarmkit().alarmUpdates() on an unsupported platform surfaces
+    // UNSUPPORTED_VERSION rather than a missing-handler error.
+    let eventChannel = FlutterEventChannel(
+      name: "flutter_alarmkit/events",
+      binaryMessenger: registrar.messenger()
+    )
+    eventChannel.setStreamHandler(UnsupportedVersionStreamHandler())
   }
 }
 
-/// Stream handler used on iOS < 26: fails every listen with `UNSUPPORTED_VERSION`
-/// so the alarm-updates stream matches the method channel's behavior. Kept
-/// outside the `@available` implementation so it is safe to instantiate on any
-/// iOS version.
+/// Stream handler used on unsupported targets: fails every listen with
+/// `UNSUPPORTED_VERSION` so the alarm-updates stream matches the method
+/// channel's behavior. Kept outside the `@available` implementation so it is
+/// safe to instantiate on any iOS version or Mac Catalyst.
 private class UnsupportedVersionStreamHandler: NSObject, FlutterStreamHandler {
   func onListen(
     withArguments arguments: Any?,
@@ -66,6 +77,7 @@ private class UnsupportedVersionStreamHandler: NSObject, FlutterStreamHandler {
 }
 
 @available(iOS 26.0, *)
+@available(macCatalyst, unavailable)
 public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
   // Store the registrar as a static property
   private static var registrar: FlutterPluginRegistrar?
