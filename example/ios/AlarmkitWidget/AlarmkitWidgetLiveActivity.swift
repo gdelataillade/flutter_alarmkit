@@ -5,6 +5,10 @@ import SwiftUI
 import WidgetKit
 
 // Name retained for AlarmAttributes<NeverMetadata> type-identity compatibility.
+// `icon`/`subtitle` are displayable metadata; the `*Tint` fields (`#RRGGBB`)
+// carry the button tint colors set by the plugin. The `stop*` fields carry the
+// stop button (text, SF Symbol, `#RRGGBB` text color): AlarmKit no longer
+// delivers `presentation.alert.stopButton` (deprecated in iOS 26.1).
 // Field set must stay in sync with the plugin's copy
 // (ios/flutter_alarmkit/Sources/flutter_alarmkit/NeverMetadata.swift).
 @available(iOS 26.0, *)
@@ -12,9 +16,33 @@ import WidgetKit
 public struct NeverMetadata: AlarmMetadata, Codable, Hashable {
     public var icon: String?
     public var subtitle: String?
-    public init(icon: String? = nil, subtitle: String? = nil) {
+    public var stopText: String?
+    public var stopIcon: String?
+    public var stopTextColor: String?
+    public var stopTint: String?
+    public var pauseTint: String?
+    public var resumeTint: String?
+    public var repeatTint: String?
+    public init(
+        icon: String? = nil,
+        subtitle: String? = nil,
+        stopText: String? = nil,
+        stopIcon: String? = nil,
+        stopTextColor: String? = nil,
+        stopTint: String? = nil,
+        pauseTint: String? = nil,
+        resumeTint: String? = nil,
+        repeatTint: String? = nil
+    ) {
         self.icon = icon
         self.subtitle = subtitle
+        self.stopText = stopText
+        self.stopIcon = stopIcon
+        self.stopTextColor = stopTextColor
+        self.stopTint = stopTint
+        self.pauseTint = pauseTint
+        self.resumeTint = resumeTint
+        self.repeatTint = repeatTint
     }
 }
 
@@ -73,7 +101,11 @@ struct AlarmkitLiveActivity: Widget {
             countdownView(state: state)
                 .font(.system(size: 36, design: .rounded))
             Spacer()
-            AlarmControls(presentation: attributes.presentation, state: state)
+            AlarmControls(
+                presentation: attributes.presentation,
+                metadata: attributes.metadata,
+                state: state
+            )
         }
     }
 
@@ -191,43 +223,32 @@ private func colorFromHex(_ hex: String) -> Color? {
     return Color(red: r, green: g, blue: b)
 }
 
-@available(iOS 26.0, *)
-@available(macCatalyst, unavailable)
-private func loadButtonTints(for alarmID: UUID) -> [String: String] {
-    let defaults = UserDefaults(suiteName: "group.flutter-alarmkit")
-    return defaults?.dictionary(forKey: "alarm_tints_\(alarmID.uuidString)") as? [String: String] ?? [:]
-}
-
 // MARK: - Control Buttons
 
 @available(iOS 26.0, *)
 @available(macCatalyst, unavailable)
 struct AlarmControls: View {
     let presentation: AlarmPresentation
+    let metadata: NeverMetadata?
     let state: AlarmPresentationState
 
-    private var tints: [String: String] {
-        loadButtonTints(for: state.alarmID)
+    private func tint(_ hex: String?, default fallback: Color) -> Color {
+        hex.flatMap(colorFromHex) ?? fallback
     }
 
-    private var stopTint: Color {
-        if let hex = tints["stopTint"], let c = colorFromHex(hex) { return c }
-        return .red
-    }
+    private var stopTint: Color { tint(metadata?.stopTint, default: .red) }
+    private var pauseTint: Color { tint(metadata?.pauseTint, default: .orange) }
+    private var resumeTint: Color { tint(metadata?.resumeTint, default: .green) }
+    private var repeatTint: Color { tint(metadata?.repeatTint, default: .blue) }
 
-    private var pauseTint: Color {
-        if let hex = tints["pauseTint"], let c = colorFromHex(hex) { return c }
-        return .orange
-    }
-
-    private var resumeTint: Color {
-        if let hex = tints["resumeTint"], let c = colorFromHex(hex) { return c }
-        return .green
-    }
-
-    private var repeatTint: Color {
-        if let hex = tints["repeatTint"], let c = colorFromHex(hex) { return c }
-        return .blue
+    // Built from the metadata: AlarmKit no longer delivers
+    // `presentation.alert.stopButton` (deprecated in iOS 26.1).
+    private var stopButton: AlarmButton {
+        AlarmButton(
+            text: LocalizedStringResource(stringLiteral: metadata?.stopText ?? "Stop"),
+            textColor: metadata?.stopTextColor.flatMap(colorFromHex) ?? .white,
+            systemImageName: metadata?.stopIcon ?? "stop.circle"
+        )
     }
 
     var body: some View {
@@ -257,7 +278,7 @@ struct AlarmControls: View {
                 EmptyView()
             }
             // Always show the stop button
-            ButtonView(config: presentation.alert.stopButton,
+            ButtonView(config: stopButton,
                        intent: StopIntent(alarmID: state.alarmID.uuidString),
                        tint: stopTint)
         }

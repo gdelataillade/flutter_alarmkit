@@ -11,9 +11,9 @@
 			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
 			<key>NSPrivacyAccessedAPITypeReasons</key>
 			<array>
-				<!-- 1C8F.1: read/write user defaults shared via an App Group
-				     (button tints + alarm metadata passed to the widget). -->
-				<string>1C8F.1</string>
+				<!-- CA92.1: read/write the app's own user defaults (per-alarm
+				     label, tint and metadata returned by getAlarms()). -->
+				<string>CA92.1</string>
 			</array>
 		</dict>
 	</array>

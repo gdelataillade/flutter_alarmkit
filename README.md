@@ -46,6 +46,17 @@ dart run flutter_alarmkit:setup --doctor   # verifies every step
 
 > **Note:** the plugin supports both Swift Package Manager and CocoaPods, and needs no `Podfile` changes. The Live Activity Widget Extension is a standalone WidgetKit target with no plugin dependency, so the setup is the same whichever dependency manager your app uses.
 
+### Upgrading from 0.4.x or earlier
+
+0.5.0 drops the App Group requirement ([#21](https://github.com/gdelataillade/flutter_alarmkit/issues/21)) and ships a new widget template. After upgrading the package, quit Xcode and re-run setup:
+
+```bash
+dart run flutter_alarmkit:setup
+dart run flutter_alarmkit:setup --doctor
+```
+
+Setup updates the widget files in `ios/AlarmkitWidget/` that you never edited, and removes `group.flutter-alarmkit` from your entitlements. If you customized the widget files, setup keeps them and tells you; port your changes onto the new template (`--force` resets the files first). You can also delete the App Groups capability from both targets if nothing else in your app uses it. Alarms scheduled before the upgrade keep the default button colors until they are rescheduled. See [InstallationSteps.md](InstallationSteps.md#upgrading-from-04x-or-earlier) for details.
+
 ## Usage
 
 ### Request Authorization
@@ -238,7 +249,7 @@ final alarmId = await FlutterAlarmkit().setCountdownAlarm(
 );
 ```
 
-Every field is optional — anything you leave null keeps the standard AlarmKit appearance. Custom tint colors require the App Group from the installation steps.
+Every field is optional — anything you leave null keeps the standard AlarmKit appearance. Button tint colors and the stop button travel to the widget in the alarm's metadata, so no App Group is needed. On iOS 26.1+ the system's own alarm alert draws its own stop control, so `stopButton` customizes the Live Activity's stop button.
 
 ### Attach metadata
 
@@ -252,7 +263,7 @@ await FlutterAlarmkit().scheduleOneShotAlarm(
 );
 ```
 
-The default widget renders the icon and subtitle; you can change *how* they render by editing your generated `AlarmkitWidget` sources. Adding entirely new metadata fields also requires changing the plugin's Swift struct.
+The default widget renders the icon and subtitle; you can change *how* they render by editing your generated `AlarmkitWidget` sources. Keep the widget's `NeverMetadata` struct as it is: it must match the plugin's, which also carries the button tints and the stop button. Adding entirely new metadata fields requires changing both.
 
 ### Control an existing alarm
 

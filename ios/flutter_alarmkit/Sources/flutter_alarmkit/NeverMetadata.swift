@@ -2,8 +2,15 @@ import AlarmKit
 
 // The name is retained (rather than renamed) to preserve the registered
 // `AlarmAttributes<NeverMetadata>` Live Activity type identity across plugin
-// upgrades. Both fields are optional, so an alarm scheduled without metadata
-// still encodes to `{}` and older `{}` payloads decode cleanly to all-nil.
+// upgrades. Every field is optional, so an alarm scheduled without metadata
+// still encodes to `{}` and older payloads decode cleanly with the missing
+// fields as nil.
+//
+// `icon`/`subtitle` are displayable metadata; the `*Tint` fields carry the
+// button tint colors (`#RRGGBB`) to the widget, since AlarmKit's `AlarmButton`
+// has no tint. The `stop*` fields carry the whole stop button (text, SF Symbol,
+// `#RRGGBB` text color): AlarmKit deprecated `AlarmPresentation.Alert.stopButton`
+// in iOS 26.1 and no longer delivers it to the widget.
 //
 // Field set must stay in sync with the copies in the widget templates
 // (ios/WidgetTemplates/ and example/ios/AlarmkitWidget/).
@@ -12,4 +19,11 @@ import AlarmKit
 struct NeverMetadata: AlarmMetadata, Codable, Hashable {
   var icon: String?
   var subtitle: String?
+  var stopText: String?
+  var stopIcon: String?
+  var stopTextColor: String?
+  var stopTint: String?
+  var pauseTint: String?
+  var resumeTint: String?
+  var repeatTint: String?
 }

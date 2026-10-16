@@ -1,3 +1,9 @@
+## 0.5.0
+* **Breaking (setup):** remove the App Group requirement, which failed code signing for every team but one (#21). After upgrading, quit Xcode and re-run `dart run flutter_alarmkit:setup`: it updates the widget template and removes `group.flutter-alarmkit` from your entitlements.
+* Button tints and the stop button now reach the widget through the alarm's metadata; `getAlarms()` data moves to the app's own `UserDefaults` (migrated automatically).
+* Fix a custom `stopButton` text/icon being ignored in the Live Activity on iOS 26.1+.
+* Setup now updates untouched widget files from earlier versions without `--force`, and cleans every entitlements file the project signs with.
+
 ## 0.4.1
 * Treat Mac Catalyst as unsupported instead of declaring AlarmKit available there, and add a native compiler check for the iOS and Catalyst availability paths.
 

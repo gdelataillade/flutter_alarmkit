@@ -6,10 +6,10 @@ description: >-
   this skill whenever the user is adding, installing, setting up, configuring, or
   troubleshooting flutter_alarmkit — including running `dart run
   flutter_alarmkit:setup`, creating the AlarmkitWidget Widget Extension target,
-  wiring up App Groups, or hitting setup errors such as "Unable to find
-  compatibility version string for object version 70/77", "Cycle inside Runner",
-  widget files that look like Xcode's emoji sample, or a Live Activity that shows
-  no custom colors or titles. Trigger it even when the user only mentions setting
+  or hitting setup errors such as "Unable to find compatibility version string
+  for object version 70/77", "Cycle inside Runner", "An Application Group with
+  Identifier 'group.flutter-alarmkit' is not available", widget files that look
+  like Xcode's emoji sample, or a Live Activity that shows no custom colors. Trigger it even when the user only mentions setting
   up alarms, Live Activities, or the widget extension in a Flutter iOS project, or
   pastes InstallationSteps.md and says "set this up for me". Prefer this skill over
   improvising Xcode/CocoaPods steps from memory — the setup has version-specific
@@ -20,14 +20,14 @@ description: >-
 
 Guide a Flutter iOS app through installing `flutter_alarmkit` end to end. Most of
 the work is automated by a bundled CLI; your job is to run it in the right order,
-hand off the two steps that genuinely require the Xcode GUI, and verify the result.
+hand off the one step that genuinely requires the Xcode GUI, and verify the result.
 
 ## Mental model
 
 `flutter_alarmkit` wraps Apple's AlarmKit (iOS 26+). Alarms present as Live
 Activities (Lock Screen + Dynamic Island), which requires a **Widget Extension**
 target alongside the app. Setting that up touches files Flutter usually hides:
-`Info.plist`, `AppDelegate.swift`, entitlements, the widget's Swift sources, and
+`Info.plist`, `AppDelegate.swift`, the widget's Swift sources, and
 `project.pbxproj`.
 
 The plugin ships a CLI — `dart run flutter_alarmkit:setup` — that patches all of
@@ -35,11 +35,12 @@ those, copies the widget sources, and repairs two Xcode-26 side effects that
 otherwise produce cryptic failures. It is **idempotent and self-healing**: running
 it again is always safe and is the standard way to recover from a bad state.
 
-Only **two** steps cannot be scripted, because they need Xcode's signing identity
-and project UI:
-
-1. Creating the `AlarmkitWidget` Widget Extension target.
-2. Adding the App Groups capability to both targets.
+Only **one** step cannot be scripted, because it needs Xcode's project UI:
+creating the `AlarmkitWidget` Widget Extension target. No App Group or other
+capability is needed — the plugin passes everything to the widget in the alarm's
+metadata. Don't add one. (Plugin versions ≤ 0.4.x required
+`group.flutter-alarmkit`; the CLI now removes it, because App Group IDs are unique
+per developer account and that one breaks signing for everyone else.)
 
 For everything else, prefer running the CLI over hand-editing files — it knows the
 version-specific pitfalls. Verify any state with `dart run
@@ -66,11 +67,11 @@ this plugin is iOS-only and needs a Mac with Xcode.
 
 ## The sequence
 
-Run these in order. Steps 2 and 4 are 🖐 **human-only** — you must stop, give the
-user precise instructions, and wait for them to confirm before continuing. Don't
-attempt to create targets or add capabilities by editing `project.pbxproj`; those
-edits won't carry the signing/membership Xcode adds, and you'll create a broken
-project that's hard to diagnose.
+Run these in order. Step 2 is 🖐 **human-only** — you must stop, give the user
+precise instructions, and wait for them to confirm before continuing. Don't
+attempt to create targets by editing `project.pbxproj`; those edits won't carry
+the signing/membership Xcode adds, and you'll create a broken project that's hard
+to diagnose.
 
 ### 1. Add the dependency
 
@@ -97,7 +98,7 @@ filesystem-synchronized folder at `ios/AlarmkitWidget/` and overwrites whatever 
 there with placeholder sample code. Running setup *after* this lets it replace
 those placeholders with the plugin's real widget code. The exact name matters —
 Xcode derives the target `AlarmkitWidgetExtension` and the folder from it, and the
-entitlements and setup checks reference the derived name.
+setup checks reference the derived name.
 
 It's fine if Xcode also generates extras like `AlarmkitWidgetControl.swift` or
 `AppIntent.swift`; the CLI removes them in the next step. The user does **not**
@@ -106,14 +107,17 @@ automatically.
 
 ### 3. Run the setup CLI
 
+Have the user **quit Xcode first** — Xcode re-upgrades the project format and
+re-orders build phases whenever it saves, which would undo setup's fixes.
+
 ```bash
 dart run flutter_alarmkit:setup
 ```
 
 This patches `Info.plist` and `AppDelegate.swift`; writes the plugin's widget
-Swift files into `ios/AlarmkitWidget/` (replacing Xcode's placeholders, removing
-its extras); creates `Runner.entitlements` with the App Group; downgrades the
-project format if Xcode bumped it past what CocoaPods can read; and reorders the
+Swift files into `ios/AlarmkitWidget/` (replacing Xcode's placeholders and
+untouched copies from earlier plugin versions, removing Xcode's extras); removes the legacy `group.flutter-alarmkit` App Group from the
+entitlements if an older plugin version added it; downgrades the project format if Xcode bumped it past what CocoaPods can read; and reorders the
 Runner build phases so release builds don't deadlock.
 
 Read its output. Every line is prefixed: `[DONE]`/`[FIXED]` (it changed
@@ -123,22 +127,7 @@ something), `[OK]` (already correct), `[SKIP]`/`[WARN]` (couldn't act — invest
 > Xcode overwrote the widget files when it created the target, so just run setup
 > again now.
 
-### 4. 🖐 Add App Groups to BOTH targets (Xcode GUI — hand off to the user)
-
-Tell the user, and wait:
-
-> For **both** the `Runner` target and the `AlarmkitWidgetExtension` target:
-> 1. Select the target ▸ **Signing & Capabilities**.
-> 2. **+ Capability ▸ App Groups**.
-> 3. Add the group `group.flutter-alarmkit`.
-
-This must be `group.flutter-alarmkit` exactly — it's hardcoded in the plugin's
-native code. Custom button colors and titles travel from the app to the widget
-through this shared App Group; without it on both targets, the Live Activity
-silently falls back to default styling. Adding the capability also wires the
-entitlements files into the build automatically.
-
-### 5. Verify
+### 4. Verify
 
 ```bash
 dart run flutter_alarmkit:setup --doctor
@@ -151,10 +140,9 @@ exactly what to paste into a bug report.
 
 If it flags a `[FAIL]` the CLI can fix (templates out of sync, project format,
 build-phase order), the fix is almost always: run `dart run flutter_alarmkit:setup`
-again, then re-run `--doctor`. A `[WARN]` about the extension's App Group means
-step 4 isn't done yet on the extension target.
+again, then re-run `--doctor`.
 
-### 6. Build and run
+### 5. Build and run
 
 ```bash
 cd ios && pod install && cd ..   # CocoaPods only — skip on Swift Package Manager
@@ -165,6 +153,25 @@ If the build fails with `Cycle inside Runner`, run `dart run
 flutter_alarmkit:setup` once more and rebuild — creating the widget target (or
 `pod install` on CocoaPods) can re-append a build phase in the wrong spot, and
 setup re-fixes the order.
+
+## Upgrading an existing install
+
+If the app already uses flutter_alarmkit 0.4.x or earlier, the user upgraded
+the package, and the widget target already exists, skip steps 1–2:
+
+1. Have the user **quit Xcode**, then run `dart run flutter_alarmkit:setup`.
+   It updates widget files that are untouched copies of an earlier template
+   (`[FIXED] Updated … (from a previous plugin version)`) and strips the legacy
+   `group.flutter-alarmkit` App Group from the entitlements.
+2. Run `--doctor`. If it reports a widget file as *customized, still reads the
+   removed App Group*, the user edited the old template. Their changes must be
+   ported onto the new one: ask before running `--force`, which overwrites the
+   files, then help re-apply the edits. The widget's `NeverMetadata` struct must
+   stay identical to the plugin's.
+3. Optional: the App Groups capability can be deleted from both targets in Xcode
+   if nothing else uses it. Re-run setup afterwards with Xcode closed.
+4. Build and run as in step 5. Alarms scheduled before the upgrade keep default
+   button colors until rescheduled.
 
 ## Troubleshooting
 
@@ -177,7 +184,8 @@ these.
 | `pod install` → `Unable to find compatibility version string for object version '70'` (or `77`) | Xcode 16.3+/26 upgraded the project format past what released CocoaPods can parse ([CocoaPods #12840](https://github.com/CocoaPods/CocoaPods/issues/12840)) | `dart run flutter_alarmkit:setup` (downgrades `objectVersion` to 60), then `pod install`. Xcode may re-upgrade on a later save — just re-run setup. |
 | Build → `Error (Xcode): Cycle inside Runner` | Embed phases ended up after Flutter's `Thin Binary` phase | `dart run flutter_alarmkit:setup` (reorders the phases), then rebuild |
 | `ios/AlarmkitWidget/` files look like Xcode's emoji-timer sample | Creating the target overwrote the plugin's widget code | `dart run flutter_alarmkit:setup` (restores the real files, removes Xcode's extras) |
-| Alarm fires but the Live Activity shows no custom colors/titles | The App Group isn't on both targets | Redo step 4 on **both** Runner and AlarmkitWidgetExtension; confirm with `--doctor` |
+| Signing → `An Application Group with Identifier 'group.flutter-alarmkit' is not available` | Left over from plugin ≤ 0.4.x, which required that App Group; only one developer account can own it | `dart run flutter_alarmkit:setup` (removes it from the entitlements). The plugin needs no App Group — don't replace it with another one |
+| Alarm fires but the Live Activity shows default button colors, or a plain "Stop" button | The widget files predate 0.5.0 (tints and the stop button now travel in the alarm metadata), or the alarm was scheduled before upgrading | `dart run flutter_alarmkit:setup` (`--force` if the widget files were customized), rebuild, and reschedule the alarm |
 | `flutter run --release` → `Could not run … Runner.app` | The iPhone is locked (Flutter hides the real `devicectl` error) | Unlock the phone and retry |
 | The user intentionally customized the widget Swift files and setup keeps a `[DIFF]` notice | Setup preserves files it doesn't recognize as Xcode placeholders | Their edits are safe. To overwrite with the plugin templates anyway: `dart run flutter_alarmkit:setup --force` |
 
@@ -190,8 +198,9 @@ the `--doctor` output, plus Flutter/Xcode/iOS versions and device model.
 - **Don't hand-write the widget Swift files.** They must match the plugin's
   canonical templates; the CLI syncs them. Editing them by hand drifts from the
   plugin and breaks the self-heal check.
-- **Don't create the Xcode target or add capabilities by scripting
-  `project.pbxproj`.** Those need Xcode's GUI for signing and target membership.
+- **Don't create the Xcode target by scripting `project.pbxproj`.** It needs
+  Xcode's GUI for signing and target membership.
+- **Don't add an App Group.** The plugin doesn't use one.
   The only pbxproj edits that are safe to script are the two the CLI already does
   (the `objectVersion` downgrade and the build-phase reorder) — let it do them.
 - **The Widget Extension needs no `Podfile` entry.** It is a standalone WidgetKit
