@@ -115,8 +115,8 @@ dart run flutter_alarmkit:setup
 ```
 
 This patches `Info.plist` and `AppDelegate.swift`; writes the plugin's widget
-Swift files into `ios/AlarmkitWidget/` (replacing Xcode's placeholders, removing
-its extras); removes the legacy `group.flutter-alarmkit` App Group from the
+Swift files into `ios/AlarmkitWidget/` (replacing Xcode's placeholders and
+untouched copies from earlier plugin versions, removing Xcode's extras); removes the legacy `group.flutter-alarmkit` App Group from the
 entitlements if an older plugin version added it; downgrades the project format if Xcode bumped it past what CocoaPods can read; and reorders the
 Runner build phases so release builds don't deadlock.
 
@@ -153,6 +153,25 @@ If the build fails with `Cycle inside Runner`, run `dart run
 flutter_alarmkit:setup` once more and rebuild — creating the widget target (or
 `pod install` on CocoaPods) can re-append a build phase in the wrong spot, and
 setup re-fixes the order.
+
+## Upgrading an existing install
+
+If the app already uses flutter_alarmkit 0.4.x or earlier, the user upgraded
+the package, and the widget target already exists, skip steps 1–2:
+
+1. Have the user **quit Xcode**, then run `dart run flutter_alarmkit:setup`.
+   It updates widget files that are untouched copies of an earlier template
+   (`[FIXED] Updated … (from a previous plugin version)`) and strips the legacy
+   `group.flutter-alarmkit` App Group from the entitlements.
+2. Run `--doctor`. If it reports a widget file as *customized, still reads the
+   removed App Group*, the user edited the old template. Their changes must be
+   ported onto the new one: ask before running `--force`, which overwrites the
+   files, then help re-apply the edits. The widget's `NeverMetadata` struct must
+   stay identical to the plugin's.
+3. Optional: the App Groups capability can be deleted from both targets in Xcode
+   if nothing else uses it. Re-run setup afterwards with Xcode closed.
+4. Build and run as in step 5. Alarms scheduled before the upgrade keep default
+   button colors until rescheduled.
 
 ## Troubleshooting
 
