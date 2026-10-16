@@ -98,7 +98,7 @@ If the build fails with `Cycle inside Runner`, run `dart run flutter_alarmkit:se
 2. Quit Xcode, then run `dart run flutter_alarmkit:setup`. It:
    - updates every file in `ios/AlarmkitWidget/` that is an untouched copy of an earlier plugin template;
    - keeps files you customized, and warns if one still reads the old App Group. Port your changes onto the new template; `--force` resets the files first;
-   - removes `group.flutter-alarmkit` from `Runner.entitlements` and the widget extension's entitlements.
+   - removes `group.flutter-alarmkit` from every entitlements file the project signs with (`Runner.entitlements`, flavor or per-configuration files, and the widget extension's).
 3. Optional: in Xcode, delete the **App Groups** capability from both targets if nothing else in your app uses it. Then quit Xcode and run setup once more, since saving the project in Xcode can undo its project-file fixes.
 4. Run `dart run flutter_alarmkit:setup --doctor`, then rebuild (`pod install` first on CocoaPods).
 

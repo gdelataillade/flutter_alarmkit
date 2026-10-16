@@ -499,13 +499,30 @@ String? _stripLegacyAppGroup(String content) {
       );
 }
 
-/// Runner.entitlements plus the widget extension's entitlements, when present.
+/// Every entitlements file the legacy App Group may live in: each one the
+/// Xcode project signs with (`CODE_SIGN_ENTITLEMENTS`, which covers flavors
+/// and per-configuration files), plus Runner.entitlements and the widget
+/// extension's entitlements.
 List<File> _entitlementsFiles(Directory projectRoot) {
-  final runner = File('${projectRoot.path}/ios/Runner/Runner.entitlements');
+  final iosPath = '${projectRoot.path}/ios';
+  final paths = <String>{'$iosPath/Runner/Runner.entitlements'};
+  final pbxproj = File(_pbxprojPath(projectRoot));
+  if (pbxproj.existsSync()) {
+    final setting = RegExp('CODE_SIGN_ENTITLEMENTS = "?([^";]+)"?;');
+    for (final match in setting.allMatches(pbxproj.readAsStringSync())) {
+      final value = match.group(1)!.trim().replaceFirst(r'$(SRCROOT)/', '');
+      // Skip values built from other build settings; they can't be resolved
+      // without Xcode.
+      if (value.contains(r'$(')) continue;
+      paths.add('$iosPath/$value');
+    }
+  }
+  if (_findExtensionEntitlements(projectRoot) case final File extension) {
+    paths.add(extension.path);
+  }
   return [
-    if (runner.existsSync()) runner,
-    if (_findExtensionEntitlements(projectRoot) case final File extension)
-      extension,
+    for (final path in paths)
+      if (File(path).existsSync()) File(path),
   ];
 }
 
