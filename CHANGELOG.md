@@ -4,6 +4,7 @@
   * Setup now removes `group.flutter-alarmkit` from `Runner.entitlements` and the widget extension's entitlements, and `--doctor` fails if it is still there. You can also remove the App Groups capability from both targets if nothing else in your app uses it.
   * `getAlarms()` label/tint/metadata now live in the app's own `UserDefaults`; existing entries are migrated once from the old suite. Alarms scheduled before upgrading keep the default button colors until rescheduled.
 * Privacy manifests: the plugin now declares `CA92.1` (app-only user defaults) instead of `1C8F.1` (App Group), and the widget no longer accesses `UserDefaults`.
+* Fix the Live Activity stop button ignoring a custom `stopButton` text, icon and text color on iOS 26.1+ (it showed "Stop" with a plain X). AlarmKit deprecated `AlarmPresentation.Alert.stopButton` in iOS 26.1 and no longer delivers it to the widget, so the stop button now travels in the alarm's metadata like the tints, and the plugin uses the non-deprecated `Alert` initializer on 26.1+. Needs the new widget template (re-run setup, as above). On iOS 26.1+ the system's own alarm alert draws its own stop control, so `stopButton` customizes the Live Activity only.
 
 ## 0.4.1
 * Treat Mac Catalyst as unsupported instead of declaring AlarmKit available there, and add a native compiler check for the iOS and Catalyst availability paths.

@@ -8,7 +8,9 @@ import AlarmKit
 //
 // `icon`/`subtitle` are displayable metadata; the `*Tint` fields carry the
 // button tint colors (`#RRGGBB`) to the widget, since AlarmKit's `AlarmButton`
-// has no tint.
+// has no tint. The `stop*` fields carry the whole stop button (text, SF Symbol,
+// `#RRGGBB` text color): AlarmKit deprecated `AlarmPresentation.Alert.stopButton`
+// in iOS 26.1 and no longer delivers it to the widget.
 //
 // Field set must stay in sync with the copies in the widget templates
 // (ios/WidgetTemplates/ and example/ios/AlarmkitWidget/).
@@ -17,6 +19,9 @@ import AlarmKit
 struct NeverMetadata: AlarmMetadata, Codable, Hashable {
   var icon: String?
   var subtitle: String?
+  var stopText: String?
+  var stopIcon: String?
+  var stopTextColor: String?
   var stopTint: String?
   var pauseTint: String?
   var resumeTint: String?

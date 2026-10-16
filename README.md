@@ -238,7 +238,7 @@ final alarmId = await FlutterAlarmkit().setCountdownAlarm(
 );
 ```
 
-Every field is optional — anything you leave null keeps the standard AlarmKit appearance. Button tint colors travel to the widget in the alarm's metadata, so no App Group is needed.
+Every field is optional — anything you leave null keeps the standard AlarmKit appearance. Button tint colors and the stop button travel to the widget in the alarm's metadata, so no App Group is needed. On iOS 26.1+ the system's own alarm alert draws its own stop control, so `stopButton` customizes the Live Activity's stop button.
 
 ### Attach metadata
 

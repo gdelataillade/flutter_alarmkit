@@ -267,8 +267,8 @@ Usually the iPhone is locked — unlock it and retry. (The underlying `devicectl
 **Signing fails with `An Application Group with Identifier 'group.flutter-alarmkit' is not available`**
 Plugin versions ≤ 0.4.x required that App Group. App Group IDs are unique across all Apple developer accounts, so only one team could ever register it. The plugin no longer uses an App Group: run `dart run flutter_alarmkit:setup` to remove it from your entitlements files, or delete it under **Signing & Capabilities** > **App Groups** on both targets. You can also remove the App Groups capability entirely if nothing else in your app uses it.
 
-**Alarm fires but the Live Activity shows default button colors**
-The button tint colors travel in the alarm's metadata, which only the current widget template reads. Run `dart run flutter_alarmkit:setup` (add `--force` if you customized the widget files) so `ios/AlarmkitWidget/` matches the plugin, then reschedule the alarm — alarms scheduled before upgrading from ≤ 0.4.x keep the default colors.
+**Alarm fires but the Live Activity shows default button colors, or a plain "Stop" button**
+The button tint colors and the stop button's text/icon travel in the alarm's metadata, which only the current widget template reads. Run `dart run flutter_alarmkit:setup` (add `--force` if you customized the widget files) so `ios/AlarmkitWidget/` matches the plugin, then reschedule the alarm — alarms scheduled before upgrading keep the defaults.
 
 **Something else**
 [Open an issue](https://github.com/gdelataillade/flutter_alarmkit/issues) and include: Flutter/Xcode/iOS versions, device model, steps to reproduce, error messages, and the output of `dart run flutter_alarmkit:setup --doctor`.

@@ -180,7 +180,7 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
   /// Convert a SwiftUI `Color` into a `#RRGGBB` hex string.
   /// Components are rounded, not truncated: `x/255` is not exact in floating
   /// point, so truncation can round-trip a channel one step down (0x5A -> 0x59).
-  private func hexString(from color: Color) -> String {
+  private static func hexString(from color: Color) -> String {
     let uiColor = UIColor(color)
     var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
     uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
@@ -235,16 +235,8 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       return AlarmButton(text: LocalizedStringResource(stringLiteral: text), textColor: textColor, systemImageName: systemImageName)
     }
 
-    var tintHexString: String {
-      let uiColor = UIColor(tintColor)
-      var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-      uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
-      // Rounded, not truncated — see hexString(from:).
-      return String(
-        format: "#%02X%02X%02X",
-        Int((r * 255).rounded()), Int((g * 255).rounded()), Int((b * 255).rounded())
-      )
-    }
+    var tintHexString: String { AlarmkitPluginImpl.hexString(from: tintColor) }
+    var textColorHexString: String { AlarmkitPluginImpl.hexString(from: textColor) }
   }
 
   private static let defaultStopButton = ButtonConfig(
@@ -286,8 +278,10 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
   }
 
   /// Build the alarm's `AlarmAttributes` metadata: the displayable fields
-  /// (icon + subtitle) plus the button tint colors. Tints can't ride on
-  /// AlarmKit's `AlarmButton`, so they travel to the widget in the metadata.
+  /// (icon + subtitle), the stop button and the button tint colors. Tints
+  /// can't ride on AlarmKit's `AlarmButton`, and since iOS 26.1 AlarmKit no
+  /// longer delivers `Alert.stopButton` to the widget, so both travel in the
+  /// metadata.
   private func makeMetadata(
     from args: [String: Any],
     stop: ButtonConfig,
@@ -296,11 +290,39 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     repeatButton: ButtonConfig? = nil
   ) -> NeverMetadata {
     var metadata = parseMetadata(from: args) ?? NeverMetadata()
+    metadata.stopText = stop.text
+    metadata.stopIcon = stop.systemImageName
+    metadata.stopTextColor = stop.textColorHexString
     metadata.stopTint = stop.tintHexString
     metadata.pauseTint = pause?.tintHexString
     metadata.resumeTint = resume?.tintHexString
     metadata.repeatTint = repeatButton?.tintHexString
     return metadata
+  }
+
+  /// Build the alert presentation. iOS 26.0 still reads `stopButton`; 26.1+
+  /// ignores it (the widget gets the stop button from the metadata instead),
+  /// so use the non-deprecated initializer there.
+  private func makeAlert(
+    title: String,
+    stop: ButtonConfig,
+    secondaryButton: AlarmButton? = nil,
+    secondaryButtonBehavior: AlarmPresentation.Alert.SecondaryButtonBehavior? = nil
+  ) -> AlarmPresentation.Alert {
+    let title = LocalizedStringResource(stringLiteral: title)
+    if #available(iOS 26.1, *) {
+      return AlarmPresentation.Alert(
+        title: title,
+        secondaryButton: secondaryButton,
+        secondaryButtonBehavior: secondaryButtonBehavior
+      )
+    }
+    return AlarmPresentation.Alert(
+      title: title,
+      stopButton: stop.toAlarmButton(),
+      secondaryButton: secondaryButton,
+      secondaryButtonBehavior: secondaryButtonBehavior
+    )
   }
 
   /// Persist the alarm's label and tint color in the app's defaults so they can
@@ -609,10 +631,7 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     let tintColor = parseTintColor(from: args)
     let id = UUID()
 
-    let alertContent = AlarmPresentation.Alert(
-      title: LocalizedStringResource(stringLiteral: label),
-      stopButton: stopConfig.toAlarmButton()
-    )
+    let alertContent = makeAlert(title: label, stop: stopConfig)
     let presentation = AlarmPresentation(alert: alertContent)
 
     let metadata = makeMetadata(from: args, stop: stopConfig)
@@ -635,7 +654,7 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     storeAlarmMeta(
       alarmId: id.uuidString,
       label: label,
-      tintColorHex: hexString(from: tintColor),
+      tintColorHex: AlarmkitPluginImpl.hexString(from: tintColor),
       createdAt: Date().timeIntervalSince1970,
       metadata: metadata
     )
@@ -731,9 +750,9 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     let pausedTitle = uiConfigDict?["pausedTitle"] as? String ?? label
 
     let presentation = AlarmPresentation(
-      alert: AlarmPresentation.Alert(
-        title: LocalizedStringResource(stringLiteral: label),
-        stopButton: stopConfig.toAlarmButton(),
+      alert: makeAlert(
+        title: label,
+        stop: stopConfig,
         secondaryButton: repeats ? repeatConfig.toAlarmButton() : nil,
         secondaryButtonBehavior: repeats ? .countdown : nil
       ),
@@ -771,7 +790,7 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     storeAlarmMeta(
       alarmId: id.uuidString,
       label: label,
-      tintColorHex: hexString(from: tintColor),
+      tintColorHex: AlarmkitPluginImpl.hexString(from: tintColor),
       createdAt: Date().timeIntervalSince1970,
       metadata: metadata
     )
@@ -873,10 +892,7 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
 
     let id = UUID()
 
-    let alertContent = AlarmPresentation.Alert(
-      title: LocalizedStringResource(stringLiteral: label),
-      stopButton: stopConfig.toAlarmButton()
-    )
+    let alertContent = makeAlert(title: label, stop: stopConfig)
     let presentation = AlarmPresentation(alert: alertContent)
     let tintColor = parseTintColor(from: args)
     let metadata = makeMetadata(from: args, stop: stopConfig)
@@ -897,7 +913,7 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     storeAlarmMeta(
       alarmId: id.uuidString,
       label: label,
-      tintColorHex: hexString(from: tintColor),
+      tintColorHex: AlarmkitPluginImpl.hexString(from: tintColor),
       createdAt: Date().timeIntervalSince1970,
       metadata: metadata
     )

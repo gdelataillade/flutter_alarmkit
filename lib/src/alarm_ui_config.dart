@@ -32,6 +32,9 @@ class AlarmUIConfig {
   /// tintColor=system red.
   ///
   /// For countdown alarms the default stop button text is "Done" instead.
+  ///
+  /// On iOS 26.1+ this customizes the Live Activity's stop button; the
+  /// system's own alarm alert draws its own stop control.
   final AlarmButtonConfig? stopButton;
 
   /// Pause button shown during the countdown state.
