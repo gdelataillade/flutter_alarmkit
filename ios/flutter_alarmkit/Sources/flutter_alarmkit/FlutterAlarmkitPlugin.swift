@@ -96,6 +96,8 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     let instance = AlarmkitPluginImpl()
     registrar.addMethodCallDelegate(instance, channel: channel)
 
+    migrateLegacyPersistenceIfNeeded()
+
     let eventChannel = FlutterEventChannel(name: "flutter_alarmkit/events", binaryMessenger: registrar.messenger())
     let streamHandler = AlarmUpdateStreamHandler()
     eventChannel.setStreamHandler(streamHandler)
@@ -188,9 +190,38 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     )
   }
 
-  // MARK: - App Group
+  // MARK: - Persistence
 
-  static let appGroupId = "group.flutter-alarmkit"
+  /// Per-alarm state the plugin needs back later (label, tint and metadata for
+  /// `getAlarms()`). Only the app process reads it, so it lives in the app's
+  /// own defaults — no App Group (and no extra capability) required.
+  static var defaults: UserDefaults { .standard }
+
+  /// App Group suite used by plugin versions up to 0.4.x. Only read, once, to
+  /// migrate state for alarms scheduled before upgrading; never written.
+  private static let legacySuiteName = "group.flutter-alarmkit"
+  private static let legacyMigratedKey = "flutter_alarmkit_legacy_suite_migrated"
+
+  /// Copy `alarm_meta_*` entries from the legacy App Group suite into the app's
+  /// own defaults, then drop the legacy entries (including `alarm_tints_*`, now
+  /// carried in the alarm metadata). Without the App Group entitlement iOS backs
+  /// the suite with an app-local file, so this recovers data either way.
+  static func migrateLegacyPersistenceIfNeeded() {
+    guard !defaults.bool(forKey: legacyMigratedKey) else { return }
+    if let legacy = UserDefaults(suiteName: legacySuiteName) {
+      for (key, value) in legacy.dictionaryRepresentation() {
+        if key.hasPrefix("alarm_meta_") {
+          if defaults.object(forKey: key) == nil {
+            defaults.set(value, forKey: key)
+          }
+          legacy.removeObject(forKey: key)
+        } else if key.hasPrefix("alarm_tints_") {
+          legacy.removeObject(forKey: key)
+        }
+      }
+    }
+    defaults.set(true, forKey: legacyMigratedKey)
+  }
 
   // MARK: - Button Config
 
@@ -254,35 +285,30 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     return ButtonConfig(text: text, textColor: textColor, systemImageName: icon, tintColor: tintColor)
   }
 
-  private func storeButtonTints(alarmId: String, stop: ButtonConfig, pause: ButtonConfig? = nil, resume: ButtonConfig? = nil, repeatButton: ButtonConfig? = nil) {
-    guard let defaults = UserDefaults(suiteName: AlarmkitPluginImpl.appGroupId) else {
-      NSLog("⚠️ Could not access App Group UserDefaults (\(AlarmkitPluginImpl.appGroupId)). Button tint colors will use defaults.")
-      return
-    }
-    var tints: [String: String] = [
-      "stopTint": stop.tintHexString,
-    ]
-    if let pause = pause {
-      tints["pauseTint"] = pause.tintHexString
-    }
-    if let resume = resume {
-      tints["resumeTint"] = resume.tintHexString
-    }
-    if let repeatButton = repeatButton {
-      tints["repeatTint"] = repeatButton.tintHexString
-    }
-    defaults.set(tints, forKey: "alarm_tints_\(alarmId)")
+  /// Build the alarm's `AlarmAttributes` metadata: the displayable fields
+  /// (icon + subtitle) plus the button tint colors. Tints can't ride on
+  /// AlarmKit's `AlarmButton`, so they travel to the widget in the metadata.
+  private func makeMetadata(
+    from args: [String: Any],
+    stop: ButtonConfig,
+    pause: ButtonConfig? = nil,
+    resume: ButtonConfig? = nil,
+    repeatButton: ButtonConfig? = nil
+  ) -> NeverMetadata {
+    var metadata = parseMetadata(from: args) ?? NeverMetadata()
+    metadata.stopTint = stop.tintHexString
+    metadata.pauseTint = pause?.tintHexString
+    metadata.resumeTint = resume?.tintHexString
+    metadata.repeatTint = repeatButton?.tintHexString
+    return metadata
   }
 
-  /// Persist the alarm's label and tint color in the App Group so they can be
-  /// returned later — AlarmKit does not expose presentation back to the app.
+  /// Persist the alarm's label and tint color in the app's defaults so they can
+  /// be returned later — AlarmKit does not expose presentation back to the app.
   /// `createdAt` (epoch seconds) lets `getAlarms` prune orphans without racing
   /// an in-flight schedule.
   private func storeAlarmMeta(alarmId: String, label: String, tintColorHex: String, createdAt: TimeInterval, metadata: NeverMetadata? = nil) {
-    guard let defaults = UserDefaults(suiteName: AlarmkitPluginImpl.appGroupId) else {
-      NSLog("⚠️ Could not access App Group UserDefaults (\(AlarmkitPluginImpl.appGroupId)). Alarm label/tint will be unavailable from getAlarms().")
-      return
-    }
+    let defaults = AlarmkitPluginImpl.defaults
     var stored: [String: Any] = [
       "label": label,
       "tintColor": tintColorHex,
@@ -299,7 +325,7 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     defaults.set(stored, forKey: "alarm_meta_\(alarmId)")
   }
 
-  /// Remove all persisted App Group state (meta + button tints) for an alarm.
+  /// Remove the persisted state for an alarm.
   private func removeAlarmPersistence(_ alarmId: String) {
     AlarmkitPluginImpl.removeAlarmPersistence(alarmId)
   }
@@ -307,9 +333,7 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
   /// Static variant of `removeAlarmPersistence`, usable from the alarm-updates
   /// stream handler (which has no plugin instance).
   static func removeAlarmPersistence(_ alarmId: String) {
-    guard let defaults = UserDefaults(suiteName: appGroupId) else { return }
     defaults.removeObject(forKey: "alarm_meta_\(alarmId)")
-    defaults.removeObject(forKey: "alarm_tints_\(alarmId)")
   }
 
   // MARK: - Authorization
@@ -591,7 +615,7 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     )
     let presentation = AlarmPresentation(alert: alertContent)
 
-    let metadata = parseMetadata(from: args)
+    let metadata = makeMetadata(from: args, stop: stopConfig)
     let attributes = AlarmAttributes<NeverMetadata>(
       presentation: presentation,
       metadata: metadata,
@@ -615,7 +639,6 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       createdAt: Date().timeIntervalSince1970,
       metadata: metadata
     )
-    storeButtonTints(alarmId: id.uuidString, stop: stopConfig)
 
     do {
       let alarm = try await manager.schedule(
@@ -724,7 +747,13 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       )
     )
     let tintColor = parseTintColor(from: args)
-    let metadata = parseMetadata(from: args)
+    let metadata = makeMetadata(
+      from: args,
+      stop: stopConfig,
+      pause: pauseConfig,
+      resume: resumeConfig,
+      repeatButton: repeats ? repeatConfig : nil
+    )
     let attributes = AlarmAttributes<NeverMetadata>(
       presentation: presentation,
       metadata: metadata,
@@ -745,13 +774,6 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       tintColorHex: hexString(from: tintColor),
       createdAt: Date().timeIntervalSince1970,
       metadata: metadata
-    )
-    storeButtonTints(
-      alarmId: id.uuidString,
-      stop: stopConfig,
-      pause: pauseConfig,
-      resume: resumeConfig,
-      repeatButton: repeatConfig
     )
 
     do {
@@ -857,7 +879,7 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     )
     let presentation = AlarmPresentation(alert: alertContent)
     let tintColor = parseTintColor(from: args)
-    let metadata = parseMetadata(from: args)
+    let metadata = makeMetadata(from: args, stop: stopConfig)
     let attributes = AlarmAttributes<NeverMetadata>(
       presentation: presentation,
       metadata: metadata,
@@ -879,7 +901,6 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
       createdAt: Date().timeIntervalSince1970,
       metadata: metadata
     )
-    storeButtonTints(alarmId: id.uuidString, stop: stopConfig)
 
     do {
       let alarm = try await manager.schedule(
@@ -912,31 +933,23 @@ public class AlarmkitPluginImpl: NSObject, FlutterPlugin {
     }
   }
 
-  /// Delete persisted App Group state for alarms that no longer exist. Guarded
+  /// Delete persisted state for alarms that no longer exist. Guarded
   /// by a grace period on the stored `createdAt` so a concurrent in-flight
   /// schedule (persisted but not yet visible in `manager.alarms`) isn't pruned.
   private func pruneOrphanedPersistence(liveIds: Set<String>) {
-    guard let defaults = UserDefaults(suiteName: AlarmkitPluginImpl.appGroupId) else { return }
+    let defaults = AlarmkitPluginImpl.defaults
     let graceSeconds: TimeInterval = 60
     let now = Date().timeIntervalSince1970
     let all = defaults.dictionaryRepresentation()
 
-    // Collect candidate ids from both metadata and tint keys, so legacy
-    // `alarm_tints_*` entries written before metadata existed are also pruned.
     var candidateIds = Set<String>()
-    for key in all.keys {
-      if key.hasPrefix("alarm_meta_") {
-        candidateIds.insert(String(key.dropFirst("alarm_meta_".count)))
-      } else if key.hasPrefix("alarm_tints_") {
-        candidateIds.insert(String(key.dropFirst("alarm_tints_".count)))
-      }
+    for key in all.keys where key.hasPrefix("alarm_meta_") {
+      candidateIds.insert(String(key.dropFirst("alarm_meta_".count)))
     }
 
     for alarmId in candidateIds {
       if liveIds.contains(alarmId) { continue }
       // Keep entries still inside the grace window (covers in-flight schedules).
-      // Schedules always write metadata before tints, so a tints-only entry can
-      // only be a legacy alarm with no createdAt — safe to prune once orphaned.
       if let meta = all["alarm_meta_\(alarmId)"] as? [String: Any],
          let createdAt = meta["createdAt"] as? TimeInterval,
          now - createdAt <= graceSeconds {

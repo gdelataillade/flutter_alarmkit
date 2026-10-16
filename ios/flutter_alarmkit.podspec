@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'flutter_alarmkit'
-  s.version          = '0.4.1'
+  s.version          = '0.5.0'
   s.summary          = 'Flutter plugin wrapping Apple AlarmKit (iOS 26+) with Live Activity alarms.'
   s.description      = <<-DESC
 Schedule one-shot, countdown, and recurrent AlarmKit alarms that present as Live
@@ -22,8 +22,8 @@ Activities on the Lock Screen and Dynamic Island, with customizable buttons and 
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
   s.swift_version = '5.0'
 
-  # The plugin reads/writes shared UserDefaults (a required-reason API) to pass button
-  # tint colors to the Live Activity widget, so it ships a privacy manifest. For more
+  # The plugin reads/writes the app's UserDefaults (a required-reason API) to persist
+  # per-alarm state for getAlarms(), so it ships a privacy manifest. For more
   # information, see
   # https://developer.apple.com/documentation/bundleresources/privacy_manifest_files
   s.resource_bundles = {'flutter_alarmkit_privacy' => ['flutter_alarmkit/Sources/flutter_alarmkit/PrivacyInfo.xcprivacy']}

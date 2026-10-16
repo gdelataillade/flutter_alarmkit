@@ -1,3 +1,10 @@
+## 0.5.0
+* **Breaking (setup):** the plugin no longer uses an App Group, so setup has one Xcode GUI step instead of two (#21). App Group IDs are unique across Apple developer accounts, so the hardcoded `group.flutter-alarmkit` failed code signing for every team but one ("An Application Group with Identifier 'group.flutter-alarmkit' is not available"), and custom button tint colors never reached the widget for anyone else.
+  * Button tint colors now travel to the widget in the alarm's metadata. **Re-run `dart run flutter_alarmkit:setup`** after upgrading so `ios/AlarmkitWidget/` gets the new widget template (add `--force` if you customized it). An outdated widget still works but shows the default button colors.
+  * Setup now removes `group.flutter-alarmkit` from `Runner.entitlements` and the widget extension's entitlements, and `--doctor` fails if it is still there. You can also remove the App Groups capability from both targets if nothing else in your app uses it.
+  * `getAlarms()` label/tint/metadata now live in the app's own `UserDefaults`; existing entries are migrated once from the old suite. Alarms scheduled before upgrading keep the default button colors until rescheduled.
+* Privacy manifests: the plugin now declares `CA92.1` (app-only user defaults) instead of `1C8F.1` (App Group), and the widget no longer accesses `UserDefaults`.
+
 ## 0.4.1
 * Treat Mac Catalyst as unsupported instead of declaring AlarmKit available there, and add a native compiler check for the iOS and Catalyst availability paths.
 

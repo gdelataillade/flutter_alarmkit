@@ -4,10 +4,11 @@
 import 'dart:convert';
 import 'dart:io';
 
-/// The App Group used to share UI configuration (button tint colors) between
-/// the main app and the widget extension. Hardcoded in the plugin's Swift
-/// code — consumer apps must use exactly this value.
-const String kAppGroupId = 'group.flutter-alarmkit';
+/// The App Group earlier plugin versions (<= 0.4.x) told consumers to add.
+/// It is no longer used, and App Group IDs are unique across Apple developer
+/// accounts, so it breaks signing for every team except the one that owns it.
+/// Setup removes it from the entitlements files it may have been written to.
+const String kLegacyAppGroupId = 'group.flutter-alarmkit';
 
 /// Files Xcode generates when creating the Widget Extension target that the
 /// plugin does not use and that conflict with the plugin's templates.
@@ -54,7 +55,7 @@ void main(List<String> args) {
   _patchInfoPlist(projectRoot);
   _patchAppDelegate(projectRoot);
   _syncWidgetTemplates(projectRoot, force: force);
-  _createEntitlements(projectRoot);
+  _removeLegacyAppGroup(projectRoot);
   _patchProjectObjectVersion(projectRoot);
   _fixBuildPhaseOrder(projectRoot);
 
@@ -403,95 +404,52 @@ Directory? _findPluginDirectory(Directory projectRoot) {
 }
 
 // ---------------------------------------------------------------------------
-// 4. Create App Group entitlements
+// 4. Remove the legacy App Group
 // ---------------------------------------------------------------------------
+//
+// Plugin versions <= 0.4.x wrote `group.flutter-alarmkit` into
+// Runner.entitlements and told consumers to add it to the extension too. The
+// plugin no longer needs an App Group, and that ID can only be registered by
+// one developer account, so leaving it in place fails code signing ("An
+// Application Group with Identifier 'group.flutter-alarmkit' is not
+// available"). Only that entry is removed; other App Groups are kept, and the
+// files themselves stay (build settings may reference them).
 
-void _createEntitlements(Directory projectRoot) {
-  if (!Directory('${projectRoot.path}/ios/Runner').existsSync()) {
-    print('[SKIP] ios/Runner/ not found');
-    return;
+void _removeLegacyAppGroup(Directory projectRoot) {
+  for (final file in _entitlementsFiles(projectRoot)) {
+    final label = file.path.replaceFirst('${projectRoot.path}/', '');
+    final updated = _stripLegacyAppGroup(file.readAsStringSync());
+    if (updated == null) continue;
+    file.writeAsStringSync(updated);
+    print('[DONE] Removed the unused "$kLegacyAppGroupId" App Group from $label');
   }
+}
 
-  final entitlementsPath = '${projectRoot.path}/ios/Runner/Runner.entitlements';
-  final file = File(entitlementsPath);
-
-  if (file.existsSync()) {
-    var content = file.readAsStringSync();
-    if (content.contains(kAppGroupId)) {
-      print('[OK]   Runner.entitlements already contains App Group');
-      return;
-    }
-
-    // Add the App Group to an existing entitlements file.
-    if (content.contains('com.apple.security.application-groups')) {
-      final keyIndex = content.indexOf('com.apple.security.application-groups');
-      final arrayEnd = content.indexOf('</array>', keyIndex);
-
-      // A self-closed empty array `<array/>` (valid plist — the example app
-      // ships one) has no `</array>`. Expand it into a populated array rather
-      // than falling through and emitting a second, duplicate App Groups key.
-      final selfClosed =
-          RegExp(r'<array\s*/>').firstMatch(content.substring(keyIndex));
-      final selfClosedStart =
-          selfClosed == null ? -1 : keyIndex + selfClosed.start;
-      final selfClosedEnd = selfClosed == null ? -1 : keyIndex + selfClosed.end;
-
-      if (selfClosed != null && (arrayEnd == -1 || selfClosedStart < arrayEnd)) {
-        content =
-            '${content.substring(0, selfClosedStart)}<array>\n\t\t<string>$kAppGroupId</string>\n\t</array>${content.substring(selfClosedEnd)}';
-        file.writeAsStringSync(content);
-        print('[DONE] Added App Group to existing Runner.entitlements');
-        return;
-      }
-      if (arrayEnd != -1) {
-        content =
-            '${content.substring(0, arrayEnd)}\t\t<string>$kAppGroupId</string>\n\t${content.substring(arrayEnd)}';
-        file.writeAsStringSync(content);
-        print('[DONE] Added App Group to existing Runner.entitlements');
-        return;
-      }
-    }
-
-    // Add new App Groups key
-    final dictEnd = content.lastIndexOf('</dict>');
-    if (dictEnd != -1) {
-      const groupsEntry = '''
-\t<key>com.apple.security.application-groups</key>
-\t<array>
-\t\t<string>$kAppGroupId</string>
-\t</array>''';
-      content =
-          '${content.substring(0, dictEnd)}$groupsEntry\n${content.substring(dictEnd)}';
-      file.writeAsStringSync(content);
-      print('[DONE] Added App Group to Runner.entitlements');
-      return;
-    }
-  }
-
-  // Create new entitlements file
-  const entitlementsContent = '''
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-\t<key>com.apple.security.application-groups</key>
-\t<array>
-\t\t<string>$kAppGroupId</string>
-\t</array>
-</dict>
-</plist>
-''';
-  file.writeAsStringSync(entitlementsContent);
-  print('[DONE] Created Runner.entitlements with App Group');
-  print(
-    '       Adding the App Groups capability in Xcode usually wires this file',
+/// Returns [content] without the legacy App Group entry (and without the
+/// App Groups key if that leaves it empty), or null when there is nothing to
+/// remove.
+String? _stripLegacyAppGroup(String content) {
+  final entry = RegExp(
+    '[ \t]*<string>${RegExp.escape(kLegacyAppGroupId)}</string>[ \t]*\n?',
   );
-  print(
-    '       up automatically. If the build ignores it, set it manually in',
-  );
-  print(
-    '       Runner target > Build Settings > Code Signing Entitlements.',
-  );
+  if (!entry.hasMatch(content)) return null;
+  return content.replaceAll(entry, '').replaceAll(
+        RegExp(
+          r'[ \t]*<key>com\.apple\.security\.application-groups</key>\s*'
+          r'<array>\s*</array>[ \t]*\n?',
+        ),
+        '',
+      );
+}
+
+/// Runner.entitlements plus the widget extension's entitlements, when present.
+List<File> _entitlementsFiles(Directory projectRoot) {
+  final runner = File('${projectRoot.path}/ios/Runner/Runner.entitlements');
+  return [
+    if (runner.existsSync()) runner,
+    if (_findExtensionEntitlements(projectRoot) case final File extension)
+      extension,
+  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -659,35 +617,24 @@ void _printNextSteps(Directory projectRoot) {
     print('     - Name it exactly "AlarmkitWidget"');
     print('     - Check only "Live Activity" (uncheck any other options)');
     print('     - Click Finish, then Activate if prompted');
-    print('  3. For BOTH the Runner and AlarmkitWidgetExtension targets:');
-    print('     - Signing & Capabilities > + Capability > App Groups');
-    print('     - Add "$kAppGroupId"');
-    print('  4. Quit Xcode, then re-run "dart run flutter_alarmkit:setup"');
-    print('     (Creating the target / adding capabilities makes Xcode');
-    print('      overwrite the widget files and upgrade the project format.');
-    print('      Running setup LAST, with Xcode closed, restores the files');
-    print('      and keeps the format CocoaPods can parse.)');
-    print('  5. Build and run (with Xcode closed):');
+    print('  3. Quit Xcode, then re-run "dart run flutter_alarmkit:setup"');
+    print('     (Creating the target makes Xcode overwrite the widget files');
+    print('      and upgrade the project format. Running setup LAST, with');
+    print('      Xcode closed, restores the files and keeps the format');
+    print('      CocoaPods can parse.)');
+    print('  4. Build and run (with Xcode closed):');
     if (_usesCocoaPods(projectRoot)) {
       print('     cd ios && pod install && cd ..');
     }
     print('     flutter run --release');
   } else {
-    print('Remaining steps:');
-    print('  1. If you have not added App Groups yet, do it in Xcode for BOTH');
-    print('     the Runner and AlarmkitWidgetExtension targets:');
-    print('     - Signing & Capabilities > + Capability > App Groups');
-    print('     - Add "$kAppGroupId"');
-    print('     Then QUIT Xcode and run "dart run flutter_alarmkit:setup" once');
-    print('     more — adding the capability makes Xcode re-upgrade the');
-    print('     project format, which the re-run fixes. (Skip if already done.)');
-    print('  2. Build and run (with Xcode closed):');
+    print('Remaining step — build and run (with Xcode closed):');
     if (_usesCocoaPods(projectRoot)) {
-      print('     cd ios && pod install && cd ..');
+      print('  cd ios && pod install && cd ..');
     }
-    print('     flutter run --release');
-    print('     (If the build fails with "Cycle inside Runner", run this setup');
-    print('      once more, then build again.)');
+    print('  flutter run --release');
+    print('  (If the build fails with "Cycle inside Runner", run this setup');
+    print('   once more, then build again.)');
   }
   print('');
   print('Verify your setup anytime with:');
@@ -838,38 +785,22 @@ int _runDoctor(Directory projectRoot) {
     }
   }
 
-  // 5. Runner entitlements
-  final runnerEntitlements =
-      File('${projectRoot.path}/ios/Runner/Runner.entitlements');
-  if (runnerEntitlements.existsSync() &&
-      runnerEntitlements.readAsStringSync().contains(kAppGroupId)) {
-    pass('Runner.entitlements contains "$kAppGroupId"');
+  // 5. No leftover legacy App Group (breaks signing for other teams)
+  final legacy = _entitlementsFiles(projectRoot)
+      .where((f) => _stripLegacyAppGroup(f.readAsStringSync()) != null)
+      .map((f) => f.path.replaceFirst('${projectRoot.path}/', ''))
+      .toList();
+  if (legacy.isEmpty) {
+    pass('No entitlements reference the unused "$kLegacyAppGroupId" App Group');
   } else {
     fail(
-      'Runner.entitlements missing or lacks the "$kAppGroupId" App Group',
+      '"$kLegacyAppGroupId" App Group still in ${legacy.join(', ')} '
+      '(no longer used; breaks code signing)',
       rerunHint,
     );
   }
 
-  // 6. Widget extension entitlements (created by Xcode when the App Groups
-  //    capability is added to the extension target)
-  final extensionEntitlements = _findExtensionEntitlements(projectRoot);
-  if (extensionEntitlements != null &&
-      extensionEntitlements.readAsStringSync().contains(kAppGroupId)) {
-    pass(
-      'Extension entitlements contain "$kAppGroupId" '
-      '(${extensionEntitlements.path.replaceFirst('${projectRoot.path}/', '')})',
-    );
-  } else {
-    warn(
-      'No extension entitlements with "$kAppGroupId" found',
-      'In Xcode, select the AlarmkitWidgetExtension target > Signing & '
-          'Capabilities > + Capability > App Groups > add "$kAppGroupId". '
-          'Without it, custom button colors fall back to defaults.',
-    );
-  }
-
-  // 7. Project format parseable by CocoaPods
+  // 6. Project format parseable by CocoaPods
   final pbxprojFile = File(_pbxprojPath(projectRoot));
   if (pbxprojFile.existsSync()) {
     final pbxproj = pbxprojFile.readAsStringSync();
@@ -891,7 +822,7 @@ int _runDoctor(Directory projectRoot) {
       pass('Project format (objectVersion = $version) is CocoaPods-compatible');
     }
 
-    // 8. Build phase order
+    // 7. Build phase order
     if (_reorderBuildPhases(pbxproj) == null) {
       pass('Runner build phases are ordered (embed phases before Thin Binary)');
     } else {

@@ -238,7 +238,7 @@ final alarmId = await FlutterAlarmkit().setCountdownAlarm(
 );
 ```
 
-Every field is optional — anything you leave null keeps the standard AlarmKit appearance. Custom tint colors require the App Group from the installation steps.
+Every field is optional — anything you leave null keeps the standard AlarmKit appearance. Button tint colors travel to the widget in the alarm's metadata, so no App Group is needed.
 
 ### Attach metadata
 

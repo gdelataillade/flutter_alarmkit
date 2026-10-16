@@ -7,25 +7,25 @@ Flutter plugin wrapping Apple's AlarmKit (iOS 26+): schedule one-shot, countdown
 - `lib/flutter_alarmkit.dart` → platform interface → method channel → `ios/flutter_alarmkit/Sources/flutter_alarmkit/FlutterAlarmkitPlugin.swift`. iOS only.
 - `lib/src/alarm_ui_config.dart` / `alarm_button_config.dart`: per-alarm Live Activity customization, serialized over the channel as maps.
 - `ios/WidgetTemplates/`: **canonical** widget extension sources (Live Activity UI). The setup CLI copies them into consumer apps at `ios/AlarmkitWidget/`. `example/ios/AlarmkitWidget/` must stay byte-identical to `ios/WidgetTemplates/` — the CLI's self-heal compares file content.
-- Button tint colors can't ride on AlarmKit's `AlarmButton`, so the plugin writes them to shared `UserDefaults` in the App Group and the widget reads them there.
+- Button tint colors can't ride on AlarmKit's `AlarmButton`, so the plugin puts them in the alarm's `NeverMetadata` (`stopTint`/`pauseTint`/`resumeTint`/`repeatTint`) and the widget reads them from `attributes.metadata`. Per-alarm state for `getAlarms()` (label, tint, metadata) lives in the app's own `UserDefaults.standard`. **No App Group**: App Group IDs are unique across Apple developer accounts, so a hardcoded one only signs for the team that registered it (issue #21). Don't reintroduce one; if app↔widget shared state is ever needed, the group ID must be per-app.
 - `bin/setup.dart`: consumer-facing installer (`dart run flutter_alarmkit:setup`), idempotent and self-healing, with a read-only `--doctor` verification mode and `--force` to overwrite customized widget files. No dependencies beyond `dart:io` — keep it that way so it runs before `pod install`.
 
 ## Load-bearing values (change all together or not at all)
 
-- App Group `group.flutter-alarmkit`: hardcoded in `ios/flutter_alarmkit/Sources/flutter_alarmkit/FlutterAlarmkitPlugin.swift`, `ios/WidgetTemplates/AlarmkitWidgetLiveActivity.swift`, `bin/setup.dart` (`kAppGroupId`), and the docs/entitlements.
+- Legacy App Group `group.flutter-alarmkit` (≤ 0.4.x): no longer used. `bin/setup.dart` (`kLegacyAppGroupId`) strips it from consumer entitlements and the doctor fails if it remains; the plugin reads that suite once to migrate old `getAlarms()` data (`migrateLegacyPersistenceIfNeeded`).
 - Target/folder names `AlarmkitWidget` → `AlarmkitWidgetExtension`: referenced by the doctor checks in `bin/setup.dart` and `InstallationSteps.md`.
 - `NeverMetadata` stored-property set (the `AlarmMetadata` payload): defined in `ios/flutter_alarmkit/Sources/flutter_alarmkit/NeverMetadata.swift` (internal) and inline in `ios/WidgetTemplates/AlarmkitWidgetLiveActivity.swift` + `example/ios/AlarmkitWidget/AlarmkitWidgetLiveActivity.swift` (public). The fields must match across all three or AlarmKit's encode (plugin) ↔ decode (widget) won't round-trip; the two widget copies also stay byte-identical. The name is kept (not "AlarmMetadata") to preserve the `AlarmAttributes<NeverMetadata>` Live Activity type identity.
 
 ## Consumer setup model (what the CLI/docs encode)
 
-Order matters: `flutter pub add` → create the `AlarmkitWidget` Widget Extension target in Xcode (GUI-only) → `dart run flutter_alarmkit:setup` → App Groups capability on both targets (GUI-only) → `pod install` (CocoaPods apps only) → `flutter run --release`. Target creation must precede setup because Xcode 16+ creates the target as a filesystem-synchronized folder and clobbers whatever is in `ios/AlarmkitWidget/`; setup run afterwards restores the templates and repairs two Xcode-26 side effects:
+Order matters: `flutter pub add` → create the `AlarmkitWidget` Widget Extension target in Xcode (GUI-only) → quit Xcode → `dart run flutter_alarmkit:setup` → `pod install` (CocoaPods apps only) → `flutter run --release`. Target creation must precede setup because Xcode 16+ creates the target as a filesystem-synchronized folder and clobbers whatever is in `ios/AlarmkitWidget/`; setup run afterwards restores the templates and repairs two Xcode-26 side effects:
 
 | Error | Cause | Fix in CLI |
 |---|---|---|
 | `pod install`: `Unable to find compatibility version string for object version '70'` | Xcode upgrades pbxproj to objectVersion 70/77; CocoaPods can't parse it (CocoaPods #12840) | downgrade to 60 |
 | Build: `Cycle inside Runner` | Xcode/CocoaPods append embed phases after Flutter's `Thin Binary` | move both embed phases above `Thin Binary` |
 
-Never create Xcode targets or add capabilities by editing `project.pbxproj` — those two steps need the GUI. The only pbxproj edits known to be safe to script are the two above.
+Never create Xcode targets or add capabilities by editing `project.pbxproj` — that needs the GUI. The only pbxproj edits known to be safe to script are the two above.
 
 ## Development
 

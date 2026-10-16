@@ -18,8 +18,8 @@ let package = Package(
             name: "flutter_alarmkit",
             dependencies: [],
             resources: [
-                // The plugin reads/writes shared UserDefaults (a required-reason API) to pass
-                // button tint colors to the Live Activity widget, so the privacy manifest is
+                // The plugin reads/writes the app's UserDefaults (a required-reason API) to
+                // persist per-alarm state for getAlarms(), so the privacy manifest is
                 // bundled with the plugin. For more information, see
                 // https://developer.apple.com/documentation/bundleresources/privacy_manifest_files
                 .process("PrivacyInfo.xcprivacy")

@@ -65,10 +65,9 @@ extension Alarm {
       }
 
       // Presentation metadata (label + tint) is not readable back from
-      // AlarmKit, so the plugin persists it in the App Group at schedule time;
-      // merge it in here when available.
-      if let defaults = UserDefaults(suiteName: AlarmkitPluginImpl.appGroupId),
-         let meta = defaults.dictionary(forKey: "alarm_meta_\(self.id.uuidString)") {
+      // AlarmKit, so the plugin persists it in the app's defaults at schedule
+      // time; merge it in here when available.
+      if let meta = AlarmkitPluginImpl.defaults.dictionary(forKey: "alarm_meta_\(self.id.uuidString)") {
           if let label = meta["label"] as? String {
               dict["label"] = label
           }
